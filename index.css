@@ -1,0 +1,77 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --color-cinema-gold: #D4AF37;
+  --color-director-red: #B22222;
+  --color-studio-white: #FDFDFD;
+  --color-film-black: #0A0A0A;
+  
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Playfair Display", ui-serif, Georgia, serif;
+}
+
+@layer base {
+  body {
+    @apply bg-studio-white text-film-black antialiased;
+  }
+}
+
+@layer components {
+  .cinematic-card {
+    @apply bg-white border border-slate-200 shadow-sm hover:shadow-md transition-shadow duration-300 rounded-none;
+    border-left: 4px solid theme('colors.cinema-gold');
+  }
+  
+  .cinematic-button {
+    @apply px-6 py-2 bg-film-black text-white font-bold uppercase tracking-widest text-xs hover:bg-director-red transition-all duration-300 rounded-none shadow-lg hover:shadow-director-red/20 active:scale-95;
+  }
+
+  .cinematic-glow {
+    @apply shadow-[0_0_20px_rgba(212,175,55,0.15)];
+  }
+
+  .cinematic-border {
+    @apply border border-slate-200 relative;
+  }
+
+  .cinematic-border::after {
+    content: '';
+    @apply absolute top-0 left-0 w-1 h-full bg-cinema-gold opacity-0 transition-opacity duration-300;
+  }
+
+  .cinematic-border:hover::after {
+    @apply opacity-100;
+  }
+
+  .film-reel-spin {
+    animation: reel-spin 2s linear infinite;
+  }
+
+  @keyframes reel-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  .clapper-snap {
+    animation: clapper-snap 1s ease-in-out infinite;
+  }
+
+  @keyframes clapper-snap {
+    0%, 100% { transform: rotate(0deg); }
+    50% { transform: rotate(-20deg); }
+  }
+
+  /* Film Grain Overlay */
+  .film-grain {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.03;
+    background-image: url("https://www.transparenttextures.com/patterns/stardust.png");
+  }
+}

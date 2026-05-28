@@ -1,31 +1,44 @@
 import React from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { AnalysisResult, MovieKnowledge } from '../types';
-import { TrendingUp, Target, Award, Info } from 'lucide-react';
+import { TrendingUp, Target, Award, Info, Loader2 } from 'lucide-react';
 
 interface BenchmarkViewProps {
   analysis: AnalysisResult;
-  benchmarkMovie?: MovieKnowledge;
+  benchmarkMovie: MovieKnowledge | null;
+  onSelectBenchmark: (title: string) => void;
+  isLoading?: boolean;
 }
 
-export const BenchmarkView: React.FC<BenchmarkViewProps> = ({ analysis, benchmarkMovie }) => {
+export const BenchmarkView: React.FC<BenchmarkViewProps> = ({ 
+  analysis, 
+  benchmarkMovie, 
+  onSelectBenchmark, 
+  isLoading = false 
+}) => {
+  
+  // Calculate relative content profile scores for comparison
   const data = [
     {
       name: 'Violence',
-      current: analysis.score * 0.8, // Mocked for comparison
-      benchmark: benchmarkMovie?.contentDNA.violence || 45,
+      current: Math.round(analysis.score * 0.8),
+      benchmark: benchmarkMovie?.contentDNA.violence ?? 45,
     },
     {
       name: 'Profanity',
-      current: analysis.score * 0.4,
-      benchmark: benchmarkMovie?.contentDNA.profanity || 30,
+      current: Math.round(analysis.score * 0.4),
+      benchmark: benchmarkMovie?.contentDNA.profanity ?? 30,
     },
     {
       name: 'Sexual',
-      current: analysis.score * 0.2,
-      benchmark: benchmarkMovie?.contentDNA.sex || 15,
+      current: Math.round(analysis.score * 0.2),
+      benchmark: benchmarkMovie?.contentDNA.sex ?? 15,
     },
   ];
+
+  const currentViolence = data[0].current;
+  const benchmarkViolence = data[0].benchmark;
+  const diffViolence = currentViolence - benchmarkViolence;
 
   return (
     <div className="p-8 max-w-6xl mx-auto space-y-12 animate-in fade-in duration-700">
@@ -35,7 +48,14 @@ export const BenchmarkView: React.FC<BenchmarkViewProps> = ({ analysis, benchmar
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 bg-panel-bg cinematic-border p-8 cinematic-glow">
+        <div className="lg:col-span-2 bg-panel-bg cinematic-border p-8 cinematic-glow relative">
+          {isLoading && (
+            <div className="absolute inset-0 bg-panel-bg/85 backdrop-blur-sm z-10 flex flex-col items-center justify-center gap-3">
+              <Loader2 className="w-8 h-8 text-cinema-gold animate-spin" />
+              <p className="text-[10px] font-black uppercase tracking-widest text-cinema-gold">Querying Global Database...</p>
+            </div>
+          )}
+
           <div className="flex justify-between items-center mb-8">
             <h3 className="text-xs font-black uppercase tracking-[0.2em] text-text-primary flex items-center gap-2">
               <TrendingUp className="w-4 h-4 text-director-red" /> Content DNA Comparison
@@ -69,19 +89,26 @@ export const BenchmarkView: React.FC<BenchmarkViewProps> = ({ analysis, benchmar
         </div>
 
         <div className="space-y-6">
-          <div className="bg-film-black border border-border-color p-8 shadow-2xl">
+          <div className="bg-film-black border border-border-color p-8 shadow-2xl relative">
+            {isLoading && (
+              <div className="absolute inset-0 bg-panel-bg/25 backdrop-blur-[1px] z-10"></div>
+            )}
             <h3 className="text-xs font-black uppercase tracking-[0.2em] text-cinema-gold mb-6">AI Insight</h3>
             <div className="space-y-6">
               <div className="flex gap-4">
                 <Target className="w-5 h-5 text-director-red flex-shrink-0" />
                 <p className="text-xs text-text-secondary leading-relaxed font-medium">
-                  Your script has <span className="text-director-red font-black">15% more graphic violence</span> than {benchmarkMovie?.title || 'The Batman (2022)'}.
+                  Your content has <span className="text-director-red font-black">{diffViolence > 0 ? `${diffViolence}% more` : `${Math.abs(diffViolence)}% less`} graphic violence</span> than {benchmarkMovie?.title || 'The Batman'}.
                 </p>
               </div>
               <div className="flex gap-4">
                 <Award className="w-5 h-5 text-cinema-gold flex-shrink-0" />
                 <p className="text-xs text-text-secondary leading-relaxed font-medium">
-                  To maintain a <span className="text-cinema-gold font-black">PG-13</span>, consider reducing the intensity of the scene at <span className="text-white font-black">TC: 01:24</span>.
+                  {analysis.score > 50 ? (
+                    <span>To maintain a lower rating tier, consider reducing the intensity of flagged triggers.</span>
+                  ) : (
+                    <span>Your rating tier is highly compliant and aligns well with standard broadcast parameters.</span>
+                  )}
                 </p>
               </div>
               <div className="pt-6 border-t border-border-color">
@@ -89,7 +116,7 @@ export const BenchmarkView: React.FC<BenchmarkViewProps> = ({ analysis, benchmar
                   <Info className="w-3 h-3 text-cinema-gold" /> Box Office Impact
                 </p>
                 <p className="text-xs text-text-secondary leading-relaxed font-serif italic">
-                  "Moving from PG-13 to R could result in a <span className="text-director-red font-black">25-30% loss</span> in domestic opening weekend revenue."
+                  "Moving to a higher restriction tier (e.g., R/A) could restrict teenager access and result in a <span className="text-director-red font-black">20-30% loss</span> in market reach."
                 </p>
               </div>
             </div>
@@ -97,11 +124,15 @@ export const BenchmarkView: React.FC<BenchmarkViewProps> = ({ analysis, benchmar
 
           <div className="bg-panel-bg cinematic-border p-6 cinematic-glow">
             <h3 className="text-xs font-black uppercase tracking-[0.2em] text-text-primary mb-4">Benchmark Target</h3>
-            <select className="w-full bg-film-black border border-border-color text-[10px] font-black uppercase tracking-widest px-4 py-3 text-text-primary focus:outline-none focus:border-cinema-gold cursor-pointer">
-              <option>The Batman (2022)</option>
-              <option>Oppenheimer (2023)</option>
-              <option>Dune: Part Two (2024)</option>
-              <option>Deadpool & Wolverine (2024)</option>
+            <select 
+              value={benchmarkMovie?.title || 'The Batman'}
+              onChange={(e) => onSelectBenchmark(e.target.value)}
+              className="w-full bg-film-black border border-border-color text-[10px] font-black uppercase tracking-widest px-4 py-3 text-text-primary focus:outline-none focus:border-cinema-gold cursor-pointer"
+            >
+              <option value="The Batman">The Batman (2022)</option>
+              <option value="Oppenheimer">Oppenheimer (2023)</option>
+              <option value="Dune: Part Two">Dune: Part Two (2024)</option>
+              <option value="Deadpool & Wolverine">Deadpool & Wolverine (2024)</option>
             </select>
           </div>
         </div>

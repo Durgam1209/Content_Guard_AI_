@@ -124,6 +124,53 @@ const getRatingColorClass = (rating: Rating) => {
   }
 };
 
+const REGIONAL_RATINGS: Record<string, Rating[]> = {
+  US: [Rating.G, Rating.PG, Rating.PG13, Rating.R, Rating.NC17],
+  IN: [Rating.U, Rating.UA, Rating.UA7, Rating.UA13, Rating.UA16, Rating.A, Rating.S],
+  UK: [Rating.U, Rating.PG, Rating.BBFC_12A, Rating.BBFC_15, Rating.BBFC_18, Rating.BBFC_R18],
+  DE: [Rating.FSK_0, Rating.FSK_6, Rating.FSK_12, Rating.FSK_16, Rating.FSK_18],
+  JP: [Rating.G, Rating.PG, Rating.PG13, Rating.R, Rating.NC17]
+};
+
+const isRatingCompliant = (current: Rating, target: Rating, regionName: string): boolean => {
+    const list = REGIONAL_RATINGS[regionName] || REGIONAL_RATINGS['US'];
+    const currentIndex = list.indexOf(current);
+    const targetIndex = list.indexOf(target);
+    if (currentIndex === -1 || targetIndex === -1) return false;
+    return currentIndex <= targetIndex;
+};
+
+const calculateRatingFromTriggers = (activeTriggers: ContentTrigger[], region: string, originalRating: Rating): Rating => {
+    if (activeTriggers.length === 0) {
+        if (region === 'US' || region === 'JP') return Rating.G;
+        if (region === 'IN') return Rating.U;
+        if (region === 'UK') return Rating.U;
+        if (region === 'DE') return Rating.FSK_0;
+        return Rating.G;
+    }
+    const hasHighSeverity = activeTriggers.some(t => t.severity === 'High');
+    const hasMediumSeverity = activeTriggers.some(t => t.severity === 'Medium');
+    if (region === 'US' || region === 'JP') {
+        if (hasHighSeverity) return Rating.R;
+        if (hasMediumSeverity) return Rating.PG13;
+        return Rating.PG;
+    } else if (region === 'IN') {
+        if (hasHighSeverity) return Rating.A;
+        if (hasMediumSeverity) return Rating.UA16;
+        return Rating.UA13;
+    } else if (region === 'UK') {
+        if (hasHighSeverity) return Rating.BBFC_18;
+        if (hasMediumSeverity) return Rating.BBFC_15;
+        return Rating.BBFC_12A;
+    } else if (region === 'DE') {
+        if (hasHighSeverity) return Rating.FSK_18;
+        if (hasMediumSeverity) return Rating.FSK_16;
+        return Rating.FSK_12;
+    }
+    return originalRating;
+};
+
+
 function App() {
   const [activeTab, setActiveTab] = useState<ViewState>('dashboard');
   const [analyzing, setAnalyzing] = useState(false);
@@ -147,6 +194,35 @@ function App() {
   const [isABView, setIsABView] = useState(false);
   const [whatIfIntensity, setWhatIfIntensity] = useState(50);
   const [isSanitized, setIsSanitized] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [sanitizedTriggerIds, setSanitizedTriggerIds] = useState<Set<string>>(new Set());
+  const [benchmarkMovie, setBenchmarkMovie] = useState<MovieKnowledge | null>(null);
+  const [benchmarkLoading, setBenchmarkLoading] = useState(false);
+
+  const loadBenchmarkMovie = async (title: string) => {
+    setBenchmarkLoading(true);
+    try {
+        const data = await getMovieCertificates(title);
+        if (data) setBenchmarkMovie(data);
+    } catch (e) {
+        console.error(e);
+    } finally {
+        setBenchmarkLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadBenchmarkMovie('The Batman');
+  }, []);
+
+  const handleRegionChange = (newRegion: string) => {
+    setRegion(newRegion);
+    if (newRegion === 'US') setTargetRating(Rating.PG13);
+    else if (newRegion === 'IN') setTargetRating(Rating.UA13);
+    else if (newRegion === 'UK') setTargetRating(Rating.BBFC_12A);
+    else if (newRegion === 'DE') setTargetRating(Rating.FSK_12);
+    else if (newRegion === 'JP') setTargetRating(Rating.PG13);
+  };
 
   // Upload State
   const [isUploading, setIsUploading] = useState(false);
@@ -160,6 +236,39 @@ function App() {
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [timelineData, setTimelineData] = useState<TimelinePoint[]>(MOCK_TIMELINE_DATA);
   const [showReport, setShowReport] = useState(false);
+
+  // Derive active triggers and rating after applying sanitization or cuts
+  const activeTriggers = analysis
+    ? (isSanitized
+        ? analysis.triggers.filter(t => !analysis.suggestedCuts.some(cut => t.timestamp >= cut.startTime && t.timestamp <= cut.endTime))
+        : analysis.triggers.filter(t => !sanitizedTriggerIds.has(t.id)))
+    : [];
+
+  const displayRating = analysis 
+    ? (isSanitized 
+        ? targetRating 
+        : calculateRatingFromTriggers(activeTriggers, region, analysis.overallRating))
+    : Rating.Unrated;
+
+  const displayScore = analysis 
+    ? (isSanitized 
+        ? Math.min(analysis.score, 30)
+        : (analysis.triggers.length > 0 ? Math.max(10, Math.round((activeTriggers.length / analysis.triggers.length) * analysis.score)) : 10))
+    : 0;
+
+  const displayTimelineData = isSanitized
+    ? timelineData.map(pt => {
+        const isCut = analysis?.suggestedCuts.some(cut => pt.time >= cut.startTime && pt.time <= cut.endTime);
+        return isCut ? { ...pt, intensity: 10 } : pt;
+      })
+    : timelineData;
+
+  const derivedAnalysis: AnalysisResult | null = analysis ? {
+      ...analysis,
+      overallRating: displayRating,
+      score: displayScore,
+      triggers: activeTriggers,
+  } : null;
 
   const togglePlay = () => {
     if (videoRef.current) {
@@ -241,6 +350,9 @@ function App() {
     setAnalysis(null);
     setAnalysisError(null);
     setIsPlaying(false);
+    setIsSanitized(false);
+    setSanitizedTriggerIds(new Set());
+    setCurrentTime(0);
     
     let result;
     
@@ -325,9 +437,33 @@ function App() {
   const renderContent = () => {
       switch (activeTab) {
           case 'database': return <GlobalDatabaseView />;
-          case 'compliance': return analysis ? <ComplianceDashboard analysis={analysis} /> : <div className="p-20 text-center text-text-secondary italic font-serif text-lg">Analyze content to view compliance data.</div>;
-          case 'review': return analysis ? <ReviewRoom analysis={analysis} onOverride={(id, dec) => console.log(id, dec)} /> : <div className="p-20 text-center text-text-secondary italic font-serif text-lg">Analyze content to enter review room.</div>;
-          case 'benchmark': return analysis ? <BenchmarkView analysis={analysis} /> : <div className="p-20 text-center text-text-secondary italic font-serif text-lg">Analyze content to view benchmarks.</div>;
+          case 'compliance': return derivedAnalysis ? <ComplianceDashboard analysis={derivedAnalysis} /> : <div className="p-20 text-center text-text-secondary italic font-serif text-lg">Analyze content to view compliance data.</div>;
+          case 'review': return derivedAnalysis ? (
+            <ReviewRoom 
+              analysis={derivedAnalysis} 
+              onOverride={(id, decision) => {
+                if (decision === 'Reject') {
+                  setSanitizedTriggerIds(prev => {
+                    const next = new Set(prev);
+                    next.add(id);
+                    return next;
+                  });
+                }
+              }} 
+            />
+          ) : (
+            <div className="p-20 text-center text-text-secondary italic font-serif text-lg">Analyze content to enter review room.</div>
+          );
+          case 'benchmark': return derivedAnalysis ? (
+            <BenchmarkView 
+              analysis={derivedAnalysis} 
+              benchmarkMovie={benchmarkMovie} 
+              onSelectBenchmark={loadBenchmarkMovie}
+              isLoading={benchmarkLoading}
+            />
+          ) : (
+            <div className="p-20 text-center text-text-secondary italic font-serif text-lg">Analyze content to view benchmarks.</div>
+          );
           case 'settings': return <SettingsPanel />;
           case 'history': return (
             <div className="p-12 max-w-5xl mx-auto space-y-12 animate-in fade-in duration-700">
@@ -384,6 +520,7 @@ function App() {
                                             onPause={() => setIsPlaying(false)}
                                             onTimeUpdate={(e) => {
                                                 const v = e.currentTarget;
+                                                setCurrentTime(v.currentTime);
                                                 const progress = (v.currentTime / v.duration) * 100;
                                                 const progressBar = document.getElementById('custom-seek-bar');
                                                 if (progressBar) progressBar.style.width = `${progress}%`;
@@ -416,7 +553,7 @@ function App() {
                                             </div>
                                             
                                             {/* Trigger Markers */}
-                                            {analysis?.triggers.map(t => (
+                                            {activeTriggers.map(t => (
                                                 <div 
                                                     key={t.id}
                                                     className="absolute top-0 bottom-0 w-1 bg-cinema-gold hover:w-2 hover:scale-y-150 transition-all cursor-help z-30"
@@ -506,10 +643,10 @@ function App() {
                             <MonitorPlay className="w-4 h-4 text-director-red" /> Temporal Safety Timeline
                         </h3>
                         <Timeline 
-                            data={timelineData} 
-                            currentTime={10} 
+                            data={displayTimelineData} 
+                            currentTime={currentTime} 
                             onSeek={handleSeek} 
-                            triggers={analysis?.triggers}
+                            triggers={activeTriggers}
                             cuts={analysis?.suggestedCuts}
                         />
                     </div>
@@ -610,32 +747,8 @@ function App() {
                     <div className="bg-panel-bg cinematic-border border-border-color p-8 flex flex-col items-center text-center relative overflow-hidden cinematic-glow">
                          <div className="w-full mb-8 pb-8 border-b border-border-color">
                              <h3 className="text-[10px] font-black text-text-secondary uppercase tracking-[0.2em] mb-4">Target Certification</h3>
-                             <div className="flex justify-center gap-2">
-                                {(
-                                   [
-                                     Rating.G,
-                                     Rating.PG,
-                                     Rating.PG13,
-                                     Rating.R,
-                                     Rating.NC17,
-                                     Rating.U,
-                                     Rating.UA,
-                                     Rating.UA7,
-                                     Rating.UA13,
-                                     Rating.UA16,
-                                     Rating.A,
-                                     Rating.S,
-                                     Rating.BBFC_12A,
-                                     Rating.BBFC_15,
-                                     Rating.BBFC_18,
-                                     Rating.BBFC_R18,
-                                     Rating.FSK_0,
-                                     Rating.FSK_6,
-                                     Rating.FSK_12,
-                                     Rating.FSK_16,
-                                     Rating.FSK_18,
-                                   ] as Rating[]
-                                 ).map(r => (
+                             <div className="flex justify-center gap-2 flex-wrap">
+                                 {(REGIONAL_RATINGS[region] || REGIONAL_RATINGS['US']).map(r => (
                                      <button 
                                          key={r}
                                          onClick={() => setTargetRating(r)}
@@ -653,22 +766,22 @@ function App() {
                                     <Shield className="w-40 h-40 text-text-primary" />
                                 </div>
                                 <h2 className="text-text-secondary text-xs uppercase tracking-[0.3em] font-black mb-6">Current Screening</h2>
-                                <div className={`text-7xl font-black mb-4 font-serif ${getRatingColorClass(analysis.overallRating)}`}>
-                                    {analysis.overallRating}
+                                <div className={`text-7xl font-black mb-4 font-serif ${getRatingColorClass(displayRating)}`}>
+                                    {displayRating}
                                 </div>
                                 
                                 {/* Live Rating Predictor Meter */}
                                 <div className="w-full space-y-2 mb-6">
                                     <div className="flex justify-between text-[9px] font-black uppercase tracking-widest text-text-secondary">
                                         <span>Compliance Gap</span>
-                                        <span className={analysis.overallRating === targetRating ? 'text-emerald-500' : 'text-director-red'}>
-                                            {analysis.overallRating === targetRating ? 'Target Met' : 'Action Required'}
+                                        <span className={isRatingCompliant(displayRating, targetRating, region) ? 'text-emerald-500' : 'text-director-red'}>
+                                            {isRatingCompliant(displayRating, targetRating, region) ? 'Target Met' : 'Action Required'}
                                         </span>
                                     </div>
                                     <div className="w-full bg-studio-bg h-2 relative overflow-hidden border border-border-color">
                                         <div 
-                                            className={`h-full transition-all duration-1000 ${analysis.score > 70 ? 'bg-director-red' : 'bg-cinema-gold'}`}
-                                            style={{width: `${analysis.score}%`}}
+                                            className={`h-full transition-all duration-1000 ${displayScore > 70 ? 'bg-director-red' : 'bg-cinema-gold'}`}
+                                            style={{width: `${displayScore}%`}}
                                         ></div>
                                         {/* Target Marker */}
                                         <div className="absolute top-0 bottom-0 w-0.5 bg-text-primary" style={{left: '40%'}}></div>
@@ -737,7 +850,17 @@ function App() {
                              {analysis && <span className="text-[10px] bg-studio-bg border border-border-color px-2 py-1 text-text-secondary font-black">{analysis.triggers.length} Found</span>}
                           </h3>
                           {analysis ? (
-                              <TriggerList triggers={analysis.triggers} onSelect={(t) => console.log(t)} />
+                              <TriggerList 
+                                  triggers={activeTriggers} 
+                                  onSelect={(t) => handleSeek(t.timestamp)} 
+                                  onApplyCuts={(ids) => {
+                                      setSanitizedTriggerIds(prev => {
+                                          const next = new Set(prev);
+                                          ids.forEach(id => next.add(id));
+                                          return next;
+                                      });
+                                  }}
+                              />
                           ) : (
                               <div className="space-y-4">
                                   {[1,2,3,4].map(i => (
@@ -758,9 +881,9 @@ function App() {
       {/* Film Grain Overlay */}
       <div className="film-grain" />
 
-      {showReport && analysis && (
+      {showReport && derivedAnalysis && (
           <CertificationReport 
-             data={analysis} 
+             data={derivedAnalysis} 
              onClose={() => setShowReport(false)} 
              fileName={videoFile?.name || "Script Analysis"}
              region={region}
@@ -947,7 +1070,7 @@ function App() {
                   <select 
                      className="bg-studio-bg border border-border-color text-[10px] font-black uppercase tracking-widest px-4 py-2 text-text-primary focus:outline-none focus:border-cinema-gold cursor-pointer"
                      value={region}
-                     onChange={(e) => setRegion(e.target.value)}
+                     onChange={(e) => handleRegionChange(e.target.value)}
                   >
                     <option value="US">USA (MPAA)</option>
                     <option value="IN">India (CBFC)</option>

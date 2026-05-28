@@ -5,6 +5,7 @@ import { AlertTriangle, Eye, Volume2, Skull, Zap, CheckSquare, Square, Download,
 interface TriggerListProps {
   triggers: ContentTrigger[];
   onSelect: (trigger: ContentTrigger) => void;
+  onApplyCuts?: (ids: Set<string>) => void;
 }
 
 const getIcon = (type: string) => {
@@ -26,7 +27,7 @@ const getSeverityStyles = (severity: string) => {
   }
 };
 
-export const TriggerList: React.FC<TriggerListProps> = ({ triggers, onSelect }) => {
+export const TriggerList: React.FC<TriggerListProps> = ({ triggers, onSelect, onApplyCuts }) => {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const toggleSelect = (id: string, e: React.MouseEvent) => {
@@ -40,6 +41,13 @@ export const TriggerList: React.FC<TriggerListProps> = ({ triggers, onSelect }) 
   const toggleAll = () => {
     if (selectedIds.size === triggers.length) setSelectedIds(new Set());
     else setSelectedIds(new Set(triggers.map(t => t.id)));
+  };
+
+  const handleApplyCuts = () => {
+    if (selectedIds.size > 0 && onApplyCuts) {
+      onApplyCuts(selectedIds);
+      setSelectedIds(new Set()); // Reset selections after applying
+    }
   };
 
   if (triggers.length === 0) {
@@ -64,6 +72,7 @@ export const TriggerList: React.FC<TriggerListProps> = ({ triggers, onSelect }) 
         <div className="flex gap-3">
           <button 
             disabled={selectedIds.size === 0}
+            onClick={handleApplyCuts}
             className="flex items-center gap-2 px-3 py-1.5 bg-cinema-gold text-film-black text-[9px] font-black uppercase tracking-widest disabled:opacity-30 disabled:cursor-not-allowed hover:bg-director-red hover:text-white transition-colors cursor-pointer"
           >
             <Scissors className="w-3 h-3" /> Apply Cuts

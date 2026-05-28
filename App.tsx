@@ -611,7 +611,31 @@ function App() {
                          <div className="w-full mb-8 pb-8 border-b border-border-color">
                              <h3 className="text-[10px] font-black text-text-secondary uppercase tracking-[0.2em] mb-4">Target Certification</h3>
                              <div className="flex justify-center gap-2">
-                                 {[Rating.G, Rating.PG, Rating.PG13, Rating.R].map(r => (
+                                {(
+                                   [
+                                     Rating.G,
+                                     Rating.PG,
+                                     Rating.PG13,
+                                     Rating.R,
+                                     Rating.NC17,
+                                     Rating.U,
+                                     Rating.UA,
+                                     Rating.UA7,
+                                     Rating.UA13,
+                                     Rating.UA16,
+                                     Rating.A,
+                                     Rating.S,
+                                     Rating.BBFC_12A,
+                                     Rating.BBFC_15,
+                                     Rating.BBFC_18,
+                                     Rating.BBFC_R18,
+                                     Rating.FSK_0,
+                                     Rating.FSK_6,
+                                     Rating.FSK_12,
+                                     Rating.FSK_16,
+                                     Rating.FSK_18,
+                                   ] as Rating[]
+                                 ).map(r => (
                                      <button 
                                          key={r}
                                          onClick={() => setTargetRating(r)}

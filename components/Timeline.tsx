@@ -24,44 +24,44 @@ export const Timeline: React.FC<TimelineProps> = ({ data, currentTime, onSeek, t
       const matchedTriggers = triggers.filter(t => Math.abs(t.timestamp - time) <= 5);
 
       return (
-        <div className="bg-white/95 backdrop-blur-xl border border-slate-200 p-0 shadow-2xl text-xs z-50 max-w-[300px] overflow-hidden cinematic-glow">
+        <div className="bg-panel-bg/95 backdrop-blur-xl border border-border-color p-0 shadow-2xl text-xs z-50 max-w-[300px] overflow-hidden cinematic-glow text-text-primary">
           {point.thumbnail && (
-            <div className="w-full aspect-video bg-slate-100 relative">
+            <div className="w-full aspect-video bg-studio-bg relative border-b border-border-color">
               <img src={point.thumbnail} alt="Frame Preview" className="w-full h-full object-cover" />
-              <div className="absolute inset-0 bg-gradient-to-t from-film-black/60 to-transparent"></div>
+              <div className="absolute inset-0 bg-gradient-to-t from-film-black/85 to-transparent"></div>
               <div className="absolute bottom-2 left-3 text-[10px] font-black text-white uppercase tracking-widest">Frame Preview</div>
             </div>
           )}
           
-          <div className="p-4">
-            <p className="font-black uppercase tracking-widest text-slate-500 mb-3 border-b border-slate-100 pb-2 flex justify-between items-center">
+          <div className="p-4 space-y-3">
+            <p className="font-black uppercase tracking-widest text-text-muted mb-3 border-b border-border-color pb-2 flex justify-between items-center">
               <span>Timecode</span>
-              <span className="text-film-black">{new Date(time * 1000).toISOString().substr(14, 5)}</span>
+              <span className="text-text-primary">{new Date(time * 1000).toISOString().substr(14, 5)}</span>
             </p>
             
             <div className="flex justify-between items-center mb-3">
-              <span className="text-film-black font-black uppercase tracking-tighter">Signal Intensity</span>
-              <span className={`font-black ${payload[0].value > 70 ? 'text-director-red' : 'text-film-black'}`}>
+              <span className="text-text-primary font-black uppercase tracking-tighter">Signal Intensity</span>
+              <span className={`font-black ${payload[0].value > 70 ? 'text-director-red' : 'text-text-primary'}`}>
                 {Math.round(payload[0].value)}/100
               </span>
             </div>
             
             {matchedCuts.length > 0 && (
-              <div className="mt-4 bg-rose-50 border-l-4 border-director-red p-3">
+              <div className="mt-4 bg-rose-950/20 border-l-4 border-director-red border-y border-r border-rose-900/50 p-3">
                 <p className="text-director-red font-black mb-2 flex items-center gap-2 uppercase text-[10px] tracking-[0.2em]">
                   <span className="text-lg leading-none">✂️</span> Suggested Cut
                 </p>
                 {matchedCuts.map((cut, i) => (
                   <div key={cut.id} className="mb-2 last:mb-0">
-                    <span className="text-film-black font-black block text-[10px] uppercase tracking-widest">{cut.type} Violation</span>
-                    <span className="text-slate-500 block leading-tight mt-1 italic font-serif">{cut.reason}</span>
+                    <span className="text-text-primary font-black block text-[10px] uppercase tracking-widest">{cut.type} Violation</span>
+                    <span className="text-text-secondary block leading-tight mt-1 italic font-serif">{cut.reason}</span>
                   </div>
                 ))}
               </div>
             )}
 
             {matchedTriggers.length > 0 && (
-              <div className="mt-4 bg-amber-50 border-l-4 border-cinema-gold p-3">
+              <div className="mt-4 bg-amber-950/20 border-l-4 border-cinema-gold border-y border-r border-cinema-gold/30 p-3">
                  <p className="text-cinema-gold font-black mb-2 flex items-center gap-2 uppercase text-[10px] tracking-[0.2em]">
                   <span className="text-lg leading-none">⚠️</span> Detected Trigger
                 </p>
@@ -69,8 +69,8 @@ export const Timeline: React.FC<TimelineProps> = ({ data, currentTime, onSeek, t
                    <div key={t.id} className="flex items-start gap-2 mb-2 last:mb-0">
                       <span className="mt-1 w-2 h-2 bg-cinema-gold flex-shrink-0"></span>
                       <div>
-                          <span className="text-film-black block font-black uppercase tracking-tighter text-[10px]">{t.type}</span>
-                          <span className="text-slate-500 block italic font-serif leading-tight">{t.description || "Detected event"}</span>
+                          <span className="text-text-primary block font-black uppercase tracking-tighter text-[10px]">{t.type}</span>
+                          <span className="text-text-secondary block italic font-serif leading-tight">{t.description || "Detected event"}</span>
                       </div>
                    </div>
                  ))}
@@ -94,22 +94,22 @@ export const Timeline: React.FC<TimelineProps> = ({ data, currentTime, onSeek, t
   ];
 
   return (
-    <div className="w-full bg-white p-0 space-y-4">
+    <div className="w-full bg-transparent p-0 space-y-4">
       <div className="flex justify-between items-start">
         <div>
-           <h3 className="text-xs font-black uppercase tracking-[0.3em] text-film-black flex items-center gap-2">
+           <h3 className="text-xs font-black uppercase tracking-[0.3em] text-text-primary flex items-center gap-2">
              Signal Intensity & Event Log
            </h3>
-           <p className="text-[10px] text-slate-500 mt-1 uppercase tracking-widest font-bold">Temporal analysis of cinematic risks</p>
+           <p className="text-[10px] text-text-secondary mt-1 uppercase tracking-widest font-bold">Temporal analysis of cinematic risks</p>
         </div>
-        <div className="flex gap-6 text-[9px] font-black uppercase tracking-widest bg-slate-50 p-3 border border-slate-100">
+        <div className="flex gap-6 text-[9px] font-black uppercase tracking-widest bg-studio-bg p-3 border border-border-color">
            <div className="flex items-center gap-2">
              <div className="w-3 h-3 bg-director-red/20 border border-director-red"></div>
-             <span className="text-film-black">Cut Region</span>
+             <span className="text-text-primary">Cut Region</span>
            </div>
            <div className="flex items-center gap-2">
              <div className="w-4 h-0 border-t-2 border-dashed border-cinema-gold"></div>
-             <span className="text-film-black">Trigger Point</span>
+             <span className="text-text-primary">Trigger Point</span>
            </div>
         </div>
       </div>
@@ -127,8 +127,8 @@ export const Timeline: React.FC<TimelineProps> = ({ data, currentTime, onSeek, t
           >
             <defs>
               <linearGradient id="colorIntensity" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#0A0A0A" stopOpacity={0.1}/>
-                <stop offset="95%" stopColor="#0A0A0A" stopOpacity={0}/>
+                <stop offset="5%" stopColor="#D4AF37" stopOpacity={0.25}/>
+                <stop offset="95%" stopColor="#D4AF37" stopOpacity={0}/>
               </linearGradient>
             </defs>
             <XAxis 
@@ -136,15 +136,15 @@ export const Timeline: React.FC<TimelineProps> = ({ data, currentTime, onSeek, t
                 type="number"
                 domain={['dataMin', 'dataMax']}
                 tickFormatter={(val) => new Date(val * 1000).toISOString().substr(14, 5)} 
-                stroke="#cbd5e1"
-                tick={{fontSize: 9, fill: '#94a3b8', fontWeight: 'bold'}}
+                stroke="#1a1e2a"
+                tick={{fontSize: 9, fill: '#cbd5e1', fontWeight: 'bold'}}
                 axisLine={false}
                 tickLine={false}
                 minTickGap={40}
             />
             <YAxis hide domain={[0, 100]} />
             
-            <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#0A0A0A', strokeWidth: 1, strokeDasharray: '4 4' }} />
+            <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#D4AF37', strokeWidth: 1, strokeDasharray: '4 4' }} />
 
             {/* Render Cuts as Highlighted Areas */}
             {cuts.map((cut) => {
@@ -154,8 +154,8 @@ export const Timeline: React.FC<TimelineProps> = ({ data, currentTime, onSeek, t
                         key={cut.id} 
                         x1={cut.startTime} 
                         x2={cut.endTime} 
-                        fill="#B22222" 
-                        fillOpacity={0.1}
+                        fill="#E22B2B" 
+                        fillOpacity={0.15}
                         strokeOpacity={0}
                         ifOverflow="visible"
                     />
@@ -185,27 +185,27 @@ export const Timeline: React.FC<TimelineProps> = ({ data, currentTime, onSeek, t
             <Area 
                 type="monotone" 
                 dataKey="intensity" 
-                stroke="#0A0A0A" 
-                strokeWidth={2}
+                stroke="#D4AF37" 
+                strokeWidth={2.5}
                 fillOpacity={1} 
                 fill="url(#colorIntensity)" 
                 animationDuration={1500}
-                activeDot={{ r: 4, strokeWidth: 2, stroke: '#fff', fill: '#B22222' }}
+                activeDot={{ r: 5, strokeWidth: 2, stroke: '#07080b', fill: '#E22B2B' }}
             />
             {(() => {
                 const Comp = ReferenceLine as any;
-                return <Comp x={currentTime} stroke="#B22222" strokeWidth={2} isFront />;
+                return <Comp x={currentTime} stroke="#E22B2B" strokeWidth={2} isFront />;
             })()}
           </AreaChart>
         </ResponsiveContainer>
       </div>
 
       {/* Layered Category Lanes */}
-      <div className="space-y-1 pt-2 border-t border-slate-100">
+      <div className="space-y-1.5 pt-4 border-t border-border-color">
         {categories.map(cat => (
           <div key={cat.key} className="flex items-center gap-4">
-            <div className="w-20 text-[8px] font-black uppercase tracking-widest text-slate-400 truncate">{cat.label}</div>
-            <div className="flex-1 h-1.5 bg-slate-50 relative overflow-hidden">
+            <div className="w-20 text-[8px] font-black uppercase tracking-widest text-text-muted truncate">{cat.label}</div>
+            <div className="flex-1 h-1.5 bg-studio-bg border border-border-color/30 relative overflow-hidden">
               {data.map((point, i) => {
                 const val = (point as any)[cat.key] || 0;
                 if (val < 10) return null;

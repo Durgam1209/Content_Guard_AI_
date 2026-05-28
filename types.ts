@@ -131,4 +131,4 @@ export interface HistoryItem {
   thumbnail: string;
 }
 
-export type ViewState = 'upload' | 'analyzing' | 'dashboard' | 'database' | 'history' | 'compliance' | 'review' | 'benchmark';
+export type ViewState = 'upload' | 'analyzing' | 'dashboard' | 'database' | 'history' | 'compliance' | 'review' | 'benchmark' | 'settings';

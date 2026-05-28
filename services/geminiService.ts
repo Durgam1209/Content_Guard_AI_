@@ -1,12 +1,40 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { AnalysisResult, Rating, ContentTrigger, MovieKnowledge, SuggestedCut } from "../types";
 
-// Initialize Gemini Client
-// IN PRODUCTION: This key should be proxied through your own backend (e.g. /api/analyze)
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Initialize Gemini Client dynamically to prevent client-side build exposure and support user overrides
+let customApiKey: string | null = null;
+let customModelName: string | null = null;
 
-// Upgrade to Pro model for deep video understanding and complex reasoning
-const modelName = 'gemini-3-pro-preview';
+export const setGeminiConfig = (apiKey: string, model: string) => {
+    customApiKey = apiKey;
+    customModelName = model;
+    if (apiKey) {
+        localStorage.setItem('GEMINI_API_KEY', apiKey);
+    }
+    if (model) {
+        localStorage.setItem('GEMINI_MODEL', model);
+    }
+};
+
+export const getGeminiConfig = () => {
+    const apiKey = customApiKey || 
+        localStorage.getItem('GEMINI_API_KEY') || 
+        (typeof process !== 'undefined' ? (process.env.API_KEY || process.env.GEMINI_API_KEY) : '') || 
+        '';
+    const model = customModelName || 
+        localStorage.getItem('GEMINI_MODEL') || 
+        'gemini-2.5-flash';
+    return { apiKey, model };
+};
+
+const getGeminiClient = () => {
+    const { apiKey } = getGeminiConfig();
+    if (!apiKey) {
+        throw new Error("Gemini API Key is missing. Please configure your API key in the settings panel to enable AI analysis.");
+    }
+    return new GoogleGenAI({ apiKey });
+};
+
 
 // --- Production Resilience Utilities ---
 
@@ -227,8 +255,10 @@ export const analyzeContent = async (
   try {
     // Wrap the API call in our retry logic
     const resultText = await withRetry(async () => {
-        const response = await ai.models.generateContent({
-          model: modelName,
+        const client = getGeminiClient();
+        const { model } = getGeminiConfig();
+        const response = await client.models.generateContent({
+          model: model,
           contents: { parts }, 
           config: {
             responseMimeType: "application/json",
@@ -386,8 +416,10 @@ export const getMovieCertificates = async (title: string): Promise<MovieKnowledg
   try {
     // Retry database queries as well
     return await withRetry(async () => {
-        const response = await ai.models.generateContent({
-          model: modelName,
+        const client = getGeminiClient();
+        const { model } = getGeminiConfig();
+        const response = await client.models.generateContent({
+          model: model,
           contents: prompt,
           config: {
             responseMimeType: "application/json",

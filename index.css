@@ -3,9 +3,14 @@
 
 @theme {
   --color-cinema-gold: #D4AF37;
-  --color-director-red: #B22222;
-  --color-studio-white: #FDFDFD;
-  --color-film-black: #0A0A0A;
+  --color-director-red: #E22B2B; /* Brighter neon red for dark mode */
+  --color-film-black: #030406;
+  --color-studio-bg: #07080b; /* Deep pitch black/navy background */
+  --color-panel-bg: #0f1118; /* Elevated panel dark gray */
+  --color-border-color: #1a1e2a; /* Slate dark borders */
+  --color-text-primary: #f8fafc;
+  --color-text-secondary: #cbd5e1;
+  --color-text-muted: #64748b;
   
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-serif: "Playfair Display", ui-serif, Georgia, serif;
@@ -13,31 +18,47 @@
 
 @layer base {
   body {
-    @apply bg-studio-white text-film-black antialiased;
+    @apply bg-studio-bg text-text-primary antialiased;
+  }
+  
+  /* Custom modern scrollbars */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-studio-bg;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-border-color hover:bg-cinema-gold/40 transition-colors;
   }
 }
 
 @layer components {
   .cinematic-card {
-    @apply bg-white border border-slate-200 shadow-sm hover:shadow-md transition-shadow duration-300 rounded-none;
-    border-left: 4px solid theme('colors.cinema-gold');
+    @apply bg-panel-bg border border-border-color shadow-xl transition-all duration-300 rounded-none relative overflow-hidden;
+    border-left: 3px solid theme('colors.cinema-gold');
   }
   
   .cinematic-button {
-    @apply px-6 py-2 bg-film-black text-white font-bold uppercase tracking-widest text-xs hover:bg-director-red transition-all duration-300 rounded-none shadow-lg hover:shadow-director-red/20 active:scale-95;
+    @apply px-6 py-2.5 bg-cinema-gold text-film-black font-black uppercase tracking-widest text-xs hover:bg-director-red hover:text-white transition-all duration-300 rounded-none shadow-lg hover:shadow-director-red/20 active:scale-95 cursor-pointer;
+  }
+
+  .cinematic-button-secondary {
+    @apply px-6 py-2.5 bg-film-black text-text-secondary border border-border-color font-black uppercase tracking-widest text-xs hover:bg-panel-bg hover:text-white transition-all duration-300 rounded-none shadow-lg active:scale-95 cursor-pointer;
   }
 
   .cinematic-glow {
-    @apply shadow-[0_0_20px_rgba(212,175,55,0.15)];
+    @apply shadow-[0_0_25px_rgba(212,175,55,0.05)];
   }
 
   .cinematic-border {
-    @apply border border-slate-200 relative;
+    @apply border border-border-color relative;
   }
 
   .cinematic-border::after {
     content: '';
-    @apply absolute top-0 left-0 w-1 h-full bg-cinema-gold opacity-0 transition-opacity duration-300;
+    @apply absolute top-0 left-0 w-[2px] h-full bg-cinema-gold opacity-0 transition-opacity duration-300;
   }
 
   .cinematic-border:hover::after {
@@ -45,7 +66,7 @@
   }
 
   .film-reel-spin {
-    animation: reel-spin 2s linear infinite;
+    animation: reel-spin 3s linear infinite;
   }
 
   @keyframes reel-spin {
@@ -54,12 +75,17 @@
   }
 
   .clapper-snap {
-    animation: clapper-snap 1s ease-in-out infinite;
+    animation: clapper-snap 1.2s ease-in-out infinite;
   }
 
   @keyframes clapper-snap {
     0%, 100% { transform: rotate(0deg); }
-    50% { transform: rotate(-20deg); }
+    50% { transform: rotate(-25deg); }
+  }
+
+  /* Glassmorphism utility */
+  .cinematic-glass {
+    @apply bg-panel-bg/75 backdrop-blur-xl border border-border-color;
   }
 
   /* Film Grain Overlay */
@@ -71,7 +97,7 @@
     height: 100%;
     pointer-events: none;
     z-index: 9999;
-    opacity: 0.03;
+    opacity: 0.015;
     background-image: url("https://www.transparenttextures.com/patterns/stardust.png");
   }
 }

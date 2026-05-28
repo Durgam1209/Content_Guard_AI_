@@ -27,6 +27,7 @@ import { ReviewRoom } from './components/ReviewRoom';
 import { BenchmarkView } from './components/BenchmarkView';
 import { CutsList } from './components/CutsList';
 import { CertificationReport } from './components/CertificationReport';
+import { SettingsPanel } from './components/SettingsPanel';
 import { analyzeContent } from './services/geminiService';
 import { extractAudioFromVideo } from './utils/audioUtils';
 import { extractSmartFrames } from './utils/videoProcessing';
@@ -291,9 +292,10 @@ function App() {
   const renderContent = () => {
       switch (activeTab) {
           case 'database': return <GlobalDatabaseView />;
-          case 'compliance': return analysis ? <ComplianceDashboard analysis={analysis} /> : <div className="p-20 text-center text-slate-400 italic">Analyze content to view compliance data.</div>;
-          case 'review': return analysis ? <ReviewRoom analysis={analysis} onOverride={(id, dec) => console.log(id, dec)} /> : <div className="p-20 text-center text-slate-400 italic">Analyze content to enter review room.</div>;
-          case 'benchmark': return analysis ? <BenchmarkView analysis={analysis} /> : <div className="p-20 text-center text-slate-400 italic">Analyze content to view benchmarks.</div>;
+          case 'compliance': return analysis ? <ComplianceDashboard analysis={analysis} /> : <div className="p-20 text-center text-text-secondary italic font-serif text-lg">Analyze content to view compliance data.</div>;
+          case 'review': return analysis ? <ReviewRoom analysis={analysis} onOverride={(id, dec) => console.log(id, dec)} /> : <div className="p-20 text-center text-text-secondary italic font-serif text-lg">Analyze content to enter review room.</div>;
+          case 'benchmark': return analysis ? <BenchmarkView analysis={analysis} /> : <div className="p-20 text-center text-text-secondary italic font-serif text-lg">Analyze content to view benchmarks.</div>;
+          case 'settings': return <SettingsPanel />;
           case 'history': return (
             <div className="p-12 max-w-5xl mx-auto space-y-12 animate-in fade-in duration-700">
                 <div className="border-l-8 border-cinema-gold pl-8">
@@ -333,7 +335,7 @@ function App() {
                 {/* Left Column: Input & Player */}
                 <div className="lg:col-span-2 space-y-8">
                     {/* Video Player Area */}
-                    <div className="bg-film-black border-4 border-film-black overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.3)] relative aspect-video group">
+                    <div className="bg-film-black border-4 border-film-black overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)] relative aspect-video group">
                         {videoUrl ? (
                             <>
                                 <div className={`w-full h-full flex ${isABView ? 'flex-row' : 'flex-col'}`}>
@@ -383,11 +385,11 @@ function App() {
                                         </div>
 
                                         {isABView && (
-                                            <div className="absolute top-4 left-4 bg-film-black/80 px-3 py-1 text-[10px] font-black text-white uppercase tracking-widest">Original Master</div>
+                                            <div className="absolute top-4 left-4 bg-film-black/80 px-3 py-1 text-[10px] font-black text-white uppercase tracking-widest border border-border-color">Original Master</div>
                                         )}
                                     </div>
                                     {isABView && (
-                                        <div className="w-1/2 relative bg-slate-900">
+                                        <div className="w-1/2 relative bg-studio-bg">
                                             <video 
                                                 src={videoUrl}
                                                 className="w-full h-full object-contain opacity-80 grayscale-[0.5] blur-[1px]"
@@ -408,13 +410,13 @@ function App() {
                                 <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                     <button 
                                         onClick={() => setIsABView(!isABView)}
-                                        className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all ${isABView ? 'bg-director-red text-white' : 'bg-white/90 text-film-black hover:bg-white'}`}
+                                        className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all ${isABView ? 'bg-director-red text-white' : 'bg-panel-bg/90 text-text-primary border border-border-color hover:bg-panel-bg'}`}
                                     >
                                         {isABView ? 'Exit A/B View' : 'A/B Comparison'}
                                     </button>
                                     <button 
                                         onClick={() => setIsSanitized(!isSanitized)}
-                                        className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all ${isSanitized ? 'bg-emerald-600 text-white' : 'bg-white/90 text-film-black hover:bg-white'}`}
+                                        className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all ${isSanitized ? 'bg-emerald-600 text-white' : 'bg-panel-bg/90 text-text-primary border border-border-color hover:bg-panel-bg'}`}
                                     >
                                         {isSanitized ? 'Sanitized' : 'Sanitize for Region'}
                                     </button>
@@ -425,12 +427,12 @@ function App() {
                                 )}
                             </>
                         ) : isUploading ? (
-                            <div className="absolute inset-0 flex flex-col items-center justify-center bg-white">
+                            <div className="absolute inset-0 flex flex-col items-center justify-center bg-panel-bg border border-border-color">
                                 {/* Thumbnail Background Preview */}
                                 {previewUrl && (
                                     <video 
                                         src={previewUrl}
-                                        className="absolute inset-0 w-full h-full object-contain opacity-10 blur-sm"
+                                        className="absolute inset-0 w-full h-full object-contain opacity-5 blur-sm"
                                         muted
                                         playsInline
                                         onLoadedMetadata={(e) => {
@@ -442,13 +444,13 @@ function App() {
                                 <CinematicLoader step="Uploading Master Copy..." progress={uploadProgress} />
                             </div>
                         ) : (
-                            <div className="absolute inset-0 flex items-center justify-center bg-slate-50">
+                            <div className="absolute inset-0 flex items-center justify-center bg-panel-bg border border-border-color">
                                 <div className="text-center p-12">
                                     <div className="relative inline-block mb-6">
-                                        <Film className="w-20 h-20 text-slate-300" />
+                                        <Film className="w-20 h-20 text-text-muted" />
                                         <Camera className="w-8 h-8 text-cinema-gold absolute -bottom-2 -right-2" />
                                     </div>
-                                    <p className="text-slate-600 font-serif italic text-lg">
+                                    <p className="text-text-secondary font-serif italic text-lg">
                                         {inputMode === 'video' ? 'Awaiting your cinematic masterpiece...' : 'Script Analysis Mode'}
                                     </p>
                                 </div>
@@ -457,8 +459,8 @@ function App() {
                     </div>
 
                     {/* Timeline Analysis */}
-                    <div className="bg-white p-6 cinematic-border cinematic-glow">
-                        <h3 className="text-xs font-black uppercase tracking-[0.3em] text-film-black mb-4 flex items-center gap-2">
+                    <div className="bg-panel-bg p-6 cinematic-border border-border-color cinematic-glow">
+                        <h3 className="text-xs font-black uppercase tracking-[0.3em] text-text-primary mb-4 flex items-center gap-2">
                             <MonitorPlay className="w-4 h-4 text-director-red" /> Temporal Safety Timeline
                         </h3>
                         <Timeline 
@@ -471,18 +473,18 @@ function App() {
                     </div>
 
                     {/* Input Control Panel */}
-                    <div className="bg-white border border-slate-200 p-8 cinematic-glow">
+                    <div className="bg-panel-bg border border-border-color p-8 cinematic-glow">
                         <div className="flex justify-between items-center mb-8">
-                            <div className="flex bg-slate-100 p-1 border border-slate-200">
+                            <div className="flex bg-studio-bg p-1 border border-border-color">
                                 <button
                                     onClick={() => setInputMode('text')}
-                                    className={`px-6 py-2 text-xs font-black uppercase tracking-widest transition-all duration-300 ${inputMode === 'text' ? 'bg-film-black text-white shadow-lg' : 'text-slate-500 hover:text-film-black'}`}
+                                    className={`px-6 py-2 text-xs font-black uppercase tracking-widest transition-all duration-300 cursor-pointer ${inputMode === 'text' ? 'bg-cinema-gold text-film-black shadow-lg font-black' : 'text-text-secondary hover:text-text-primary'}`}
                                 >
                                     Script
                                 </button>
                                 <button
                                     onClick={() => setInputMode('video')}
-                                    className={`px-6 py-2 text-xs font-black uppercase tracking-widest transition-all duration-300 ${inputMode === 'video' ? 'bg-film-black text-white shadow-lg' : 'text-slate-500 hover:text-film-black'}`}
+                                    className={`px-6 py-2 text-xs font-black uppercase tracking-widest transition-all duration-300 cursor-pointer ${inputMode === 'video' ? 'bg-cinema-gold text-film-black shadow-lg font-black' : 'text-text-secondary hover:text-text-primary'}`}
                                 >
                                     Video
                                 </button>
@@ -491,7 +493,7 @@ function App() {
                             <button 
                                 onClick={handleAnalyze}
                                 disabled={analyzing || (inputMode === 'video' && !videoFile)}
-                                className="cinematic-button flex items-center gap-3"
+                                className="cinematic-button flex items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 {analyzing ? 'Processing...' : 'Action: Analyze'}
                                 {!analyzing && <PlayCircle className="w-4 h-4" />}
@@ -500,11 +502,11 @@ function App() {
 
                         {inputMode === 'text' ? (
                             <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
-                                <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 mb-3 flex items-center gap-2">
+                                <h3 className="text-xs font-black uppercase tracking-widest text-text-secondary mb-3 flex items-center gap-2">
                                     <FileText className="w-4 h-4" /> Scene Script
                                 </h3>
                                 <textarea
-                                    className="w-full h-40 bg-slate-50 border border-slate-200 p-4 text-film-black text-sm font-mono focus:outline-none focus:border-cinema-gold transition-colors resize-none leading-relaxed"
+                                    className="w-full h-40 bg-studio-bg border border-border-color p-4 text-text-primary text-sm font-mono focus:outline-none focus:border-cinema-gold transition-colors resize-none leading-relaxed"
                                     placeholder="Enter scene description or dialogue..."
                                     value={inputText}
                                     onChange={(e) => setInputText(e.target.value)}
@@ -513,12 +515,12 @@ function App() {
                         ) : (
                             <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
                                 {!videoFile && !isUploading ? (
-                                    <label className="border-2 border-dashed border-slate-200 p-12 text-center hover:bg-slate-50 hover:border-cinema-gold transition-all cursor-pointer block group">
-                                        <div className="w-16 h-16 bg-slate-100 flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
+                                    <label className="border-2 border-dashed border-border-color p-12 text-center hover:bg-studio-bg hover:border-cinema-gold transition-all cursor-pointer block group">
+                                        <div className="w-16 h-16 bg-studio-bg border border-border-color flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
                                             <Upload className="w-8 h-8 text-cinema-gold" />
                                         </div>
-                                        <p className="text-sm text-film-black font-black uppercase tracking-widest">Upload Master Copy</p>
-                                        <p className="text-xs text-slate-500 mt-2 font-serif italic">MP4, WebM, or MOV formats accepted</p>
+                                        <p className="text-sm text-text-primary font-black uppercase tracking-widest">Upload Master Copy</p>
+                                        <p className="text-xs text-text-muted mt-2 font-serif italic">MP4, WebM, or MOV formats accepted</p>
                                         <input 
                                             type="file" 
                                             accept="video/*" 
@@ -527,19 +529,19 @@ function App() {
                                         />
                                     </label>
                                 ) : videoFile ? (
-                                    <div className="bg-slate-50 border border-slate-200 p-6 flex items-center justify-between">
+                                    <div className="bg-studio-bg border border-border-color p-6 flex items-center justify-between">
                                         <div className="flex items-center gap-6">
-                                            <div className="w-16 h-16 bg-white flex items-center justify-center border border-slate-200">
+                                            <div className="w-16 h-16 bg-panel-bg flex items-center justify-center border border-border-color">
                                                 <Video className="w-8 h-8 text-director-red" />
                                             </div>
                                             <div>
-                                                <p className="text-sm font-black uppercase tracking-widest text-film-black truncate max-w-[300px]">{videoFile.name}</p>
-                                                <p className="text-xs text-slate-500 font-serif italic">{(videoFile.size / (1024 * 1024)).toFixed(2)} MB • Ready for Screening</p>
+                                                <p className="text-sm font-black uppercase tracking-widest text-text-primary truncate max-w-[300px]">{videoFile.name}</p>
+                                                <p className="text-xs text-text-secondary font-serif italic">{(videoFile.size / (1024 * 1024)).toFixed(2)} MB • Ready for Screening</p>
                                             </div>
                                         </div>
                                         <button 
                                             onClick={clearVideo} 
-                                            className="p-3 hover:bg-white border border-transparent hover:border-slate-200 text-slate-500 hover:text-director-red transition-all"
+                                            className="p-3 hover:bg-panel-bg border border-transparent hover:border-border-color text-text-secondary hover:text-director-red transition-all cursor-pointer"
                                             title="Eject Master"
                                         >
                                             <X className="w-6 h-6" />
@@ -549,9 +551,9 @@ function App() {
                             </div>
                         )}
                         
-                        <div className="mt-8 pt-8 border-t border-slate-100 flex items-start gap-4">
+                        <div className="mt-8 pt-8 border-t border-border-color flex items-start gap-4">
                             <Activity className="w-5 h-5 text-cinema-gold mt-0.5" />
-                            <p className="text-xs text-slate-500 leading-relaxed font-medium">
+                            <p className="text-xs text-text-secondary leading-relaxed font-medium">
                                 {inputMode === 'video' 
                                     ? "Studio-Grade Analysis: Our AI performs frame-by-frame inspection and audio spectral analysis to ensure compliance with global cinematic standards." 
                                     : "Pre-Production Mode: Analyze your script before the cameras roll. Get instant feedback on potential rating hurdles and cultural sensitivities."}
@@ -563,15 +565,15 @@ function App() {
                 {/* Right Column: AI Findings */}
                 <div className="space-y-8">
                     {/* Rating Card */}
-                    <div className="bg-white cinematic-border p-8 flex flex-col items-center text-center relative overflow-hidden cinematic-glow">
-                         <div className="w-full mb-8 pb-8 border-b border-slate-100">
-                             <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4">Target Certification</h3>
+                    <div className="bg-panel-bg cinematic-border border-border-color p-8 flex flex-col items-center text-center relative overflow-hidden cinematic-glow">
+                         <div className="w-full mb-8 pb-8 border-b border-border-color">
+                             <h3 className="text-[10px] font-black text-text-secondary uppercase tracking-[0.2em] mb-4">Target Certification</h3>
                              <div className="flex justify-center gap-2">
                                  {[Rating.G, Rating.PG, Rating.PG13, Rating.R].map(r => (
                                      <button 
                                          key={r}
                                          onClick={() => setTargetRating(r)}
-                                         className={`w-12 h-12 flex items-center justify-center text-xs font-black border-2 transition-all ${targetRating === r ? 'border-film-black bg-film-black text-white scale-110 shadow-lg' : 'border-slate-100 text-slate-400 hover:border-slate-300'}`}
+                                         className={`w-12 h-12 flex items-center justify-center text-xs font-black border-2 transition-all cursor-pointer ${targetRating === r ? 'border-cinema-gold bg-cinema-gold text-film-black scale-110 shadow-lg font-black' : 'border-border-color text-text-muted hover:border-text-secondary'}`}
                                      >
                                          {r}
                                      </button>
@@ -580,104 +582,104 @@ function App() {
                          </div>
 
                          {analysis ? (
-                             <>
+                              <>
                                 <div className="absolute -top-4 -right-4 p-4 opacity-5">
-                                    <Shield className="w-40 h-40" />
+                                    <Shield className="w-40 h-40 text-text-primary" />
                                 </div>
-                                <h2 className="text-slate-500 text-xs uppercase tracking-[0.3em] font-black mb-6">Current Screening</h2>
+                                <h2 className="text-text-secondary text-xs uppercase tracking-[0.3em] font-black mb-6">Current Screening</h2>
                                 <div className={`text-7xl font-black mb-4 font-serif ${getRatingColorClass(analysis.overallRating)}`}>
                                     {analysis.overallRating}
                                 </div>
                                 
                                 {/* Live Rating Predictor Meter */}
                                 <div className="w-full space-y-2 mb-6">
-                                    <div className="flex justify-between text-[9px] font-black uppercase tracking-widest text-slate-500">
+                                    <div className="flex justify-between text-[9px] font-black uppercase tracking-widest text-text-secondary">
                                         <span>Compliance Gap</span>
-                                        <span className={analysis.overallRating === targetRating ? 'text-emerald-600' : 'text-director-red'}>
+                                        <span className={analysis.overallRating === targetRating ? 'text-emerald-500' : 'text-director-red'}>
                                             {analysis.overallRating === targetRating ? 'Target Met' : 'Action Required'}
                                         </span>
                                     </div>
-                                    <div className="w-full bg-slate-100 h-2 relative overflow-hidden">
+                                    <div className="w-full bg-studio-bg h-2 relative overflow-hidden border border-border-color">
                                         <div 
                                             className={`h-full transition-all duration-1000 ${analysis.score > 70 ? 'bg-director-red' : 'bg-cinema-gold'}`}
                                             style={{width: `${analysis.score}%`}}
                                         ></div>
                                         {/* Target Marker */}
-                                        <div className="absolute top-0 bottom-0 w-0.5 bg-film-black" style={{left: '40%'}}></div>
+                                        <div className="absolute top-0 bottom-0 w-0.5 bg-text-primary" style={{left: '40%'}}></div>
                                     </div>
                                 </div>
 
-                                <p className="text-sm text-slate-700 leading-relaxed mb-8 font-medium italic">
-                                    "{analysis.summary}"
-                                </p>
+                                 <p className="text-sm text-text-secondary leading-relaxed mb-8 font-medium italic">
+                                     "{analysis.summary}"
+                                 </p>
 
-                                {/* What-If Simulator */}
-                                <div className="w-full pt-8 border-t border-slate-100">
-                                    <div className="flex items-center justify-between mb-4">
-                                        <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
-                                            <Sliders className="w-3 h-3 text-director-red" /> What-If Simulator
-                                        </h3>
-                                        <span className="text-[10px] font-black text-film-black">{whatIfIntensity}% Intensity</span>
-                                    </div>
-                                    <input 
-                                        type="range" 
-                                        min="0" 
-                                        max="100" 
-                                        value={whatIfIntensity}
-                                        onChange={(e) => setWhatIfIntensity(Number(e.target.value))}
-                                        className="w-full h-1.5 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-film-black mb-4"
-                                    />
-                                    <div className="bg-slate-50 p-3 text-[9px] font-black uppercase tracking-widest text-slate-500 border border-slate-100">
-                                        Predicted Rating at {whatIfIntensity}%: <span className="text-film-black">{whatIfIntensity > 80 ? 'R' : whatIfIntensity > 40 ? 'PG-13' : 'PG'}</span>
-                                    </div>
-                                </div>
-                                
-                                <button 
-                                    onClick={() => setShowReport(true)}
-                                    className="w-full bg-film-black text-white py-3 text-xs font-black uppercase tracking-widest hover:bg-director-red transition-colors flex items-center justify-center gap-3"
-                                >
-                                    <FileCheck className="w-4 h-4" />
-                                    Generate Official Certificate
-                                </button>
+                                 {/* What-If Simulator */}
+                                 <div className="w-full pt-8 border-t border-border-color">
+                                     <div className="flex items-center justify-between mb-4">
+                                         <h3 className="text-[10px] font-black text-text-secondary uppercase tracking-widest flex items-center gap-2">
+                                             <Sliders className="w-3 h-3 text-director-red" /> What-If Simulator
+                                         </h3>
+                                         <span className="text-[10px] font-black text-text-primary">{whatIfIntensity}% Intensity</span>
+                                     </div>
+                                     <input 
+                                         type="range" 
+                                         min="0" 
+                                         max="100" 
+                                         value={whatIfIntensity}
+                                         onChange={(e) => setWhatIfIntensity(Number(e.target.value))}
+                                         className="w-full h-1.5 bg-studio-bg rounded-lg appearance-none cursor-pointer accent-cinema-gold mb-4"
+                                     />
+                                     <div className="bg-studio-bg p-3 text-[9px] font-black uppercase tracking-widest text-text-secondary border border-border-color">
+                                         Predicted Rating at {whatIfIntensity}%: <span className="text-text-primary">{whatIfIntensity > 80 ? 'R' : whatIfIntensity > 40 ? 'PG-13' : 'PG'}</span>
+                                     </div>
+                                 </div>
+                                 
+                                 <button 
+                                     onClick={() => setShowReport(true)}
+                                     className="w-full bg-cinema-gold text-film-black hover:bg-director-red hover:text-white py-3.5 text-xs font-black uppercase tracking-widest transition-colors flex items-center justify-center gap-3 cursor-pointer shadow-lg"
+                                 >
+                                     <FileCheck className="w-4 h-4" />
+                                     Generate Official Certificate
+                                 </button>
 
-                                {analysis.culturalNotes && (
-                                    <div className="w-full mt-6 bg-slate-50 border-l-4 border-cinema-gold p-4 text-xs text-slate-700 text-left italic">
-                                        <strong className="text-film-black uppercase tracking-widest block mb-1">Regional Context ({region})</strong> {analysis.culturalNotes}
-                                    </div>
-                                )}
-                             </>
-                         ) : (
-                             <div className="text-slate-400 py-12 flex flex-col items-center gap-4">
-                                 <MonitorPlay className="w-12 h-12 opacity-30" />
-                                 <p className="font-serif italic text-slate-600">Awaiting screening results...</p>
-                             </div>
-                         )}
-                    </div>
+                                 {analysis.culturalNotes && (
+                                     <div className="w-full mt-6 bg-studio-bg border-l-4 border-cinema-gold p-4 text-xs text-text-secondary text-left italic border-y border-r border-border-color">
+                                         <strong className="text-text-primary uppercase tracking-widest block mb-1">Regional Context ({region})</strong> {analysis.culturalNotes}
+                                     </div>
+                                 )}
+                              </>
+                          ) : (
+                              <div className="text-text-muted py-12 flex flex-col items-center gap-4">
+                                  <MonitorPlay className="w-12 h-12 opacity-30" />
+                                  <p className="font-serif italic text-text-secondary">Awaiting screening results...</p>
+                              </div>
+                          )}
+                     </div>
 
-                    {/* Cuts */}
-                    {analysis && analysis.suggestedCuts && analysis.suggestedCuts.length > 0 && (
-                        <div className="bg-white cinematic-border p-6 cinematic-glow">
-                            <h3 className="text-xs font-black uppercase tracking-widest text-film-black mb-4">Director's Cuts</h3>
-                            <CutsList cuts={analysis.suggestedCuts} onSeek={handleSeek} />
-                        </div>
-                    )}
+                     {/* Cuts */}
+                     {analysis && analysis.suggestedCuts && analysis.suggestedCuts.length > 0 && (
+                         <div className="bg-panel-bg border border-border-color p-6 cinematic-glow">
+                             <h3 className="text-xs font-black uppercase tracking-widest text-text-primary mb-4">Director's Cuts</h3>
+                             <CutsList cuts={analysis.suggestedCuts} onSeek={handleSeek} />
+                         </div>
+                     )}
 
-                    {/* Triggers */}
-                    <div className="bg-white cinematic-border p-8 max-h-[600px] overflow-y-auto cinematic-glow">
-                         <h3 className="text-xs font-black uppercase tracking-[0.3em] text-film-black mb-6 flex items-center justify-between">
-                            <span>Detected Triggers</span>
-                            {analysis && <span className="text-[10px] bg-slate-100 px-2 py-1 text-slate-600 font-black">{analysis.triggers.length} Found</span>}
-                         </h3>
-                         {analysis ? (
-                             <TriggerList triggers={analysis.triggers} onSelect={(t) => console.log(t)} />
-                         ) : (
-                             <div className="space-y-4">
-                                 {[1,2,3,4].map(i => (
-                                     <div key={i} className="h-14 bg-slate-50 animate-pulse"></div>
-                                 ))}
-                             </div>
-                         )}
-                    </div>
+                     {/* Triggers */}
+                     <div className="bg-panel-bg border border-border-color p-8 max-h-[600px] overflow-y-auto cinematic-glow">
+                          <h3 className="text-xs font-black uppercase tracking-[0.3em] text-text-primary mb-6 flex items-center justify-between">
+                             <span>Detected Triggers</span>
+                             {analysis && <span className="text-[10px] bg-studio-bg border border-border-color px-2 py-1 text-text-secondary font-black">{analysis.triggers.length} Found</span>}
+                          </h3>
+                          {analysis ? (
+                              <TriggerList triggers={analysis.triggers} onSelect={(t) => console.log(t)} />
+                          ) : (
+                              <div className="space-y-4">
+                                  {[1,2,3,4].map(i => (
+                                      <div key={i} className="h-14 bg-studio-bg border border-border-color animate-pulse"></div>
+                                  ))}
+                              </div>
+                          )}
+                     </div>
                 </div>
             </div>
           );
@@ -685,7 +687,8 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-studio-white flex text-film-black font-sans relative">
+    <div className="min-h-screen bg-studio-bg flex text-text-primary font-sans relative">
+
       {/* Film Grain Overlay */}
       <div className="film-grain" />
 
@@ -699,70 +702,76 @@ function App() {
       )}
 
       {/* Sidebar */}
-      <aside className="w-72 bg-white border-r border-slate-200 flex flex-col hidden md:flex z-20">
-        <div className="p-8 border-b border-slate-100 flex items-center gap-4">
-          <div className="bg-film-black p-2.5 shadow-lg shadow-film-black/10">
+      <aside className="w-72 bg-panel-bg border-r border-border-color flex flex-col hidden md:flex z-20">
+        <div className="p-8 border-b border-border-color flex items-center gap-4">
+          <div className="bg-studio-bg p-2.5 border border-border-color shadow-lg">
             <Shield className="w-6 h-6 text-cinema-gold" />
           </div>
-          <span className="font-serif font-black text-xl tracking-tighter text-film-black uppercase">ContentGuard</span>
+          <span className="font-serif font-black text-xl tracking-tighter text-text-primary uppercase">ContentGuard</span>
         </div>
         
-        <nav className="flex-1 p-6 space-y-3">
+        <nav className="flex-1 p-6 space-y-2">
           <button 
             onClick={() => setActiveTab('dashboard')}
-            className={`w-full flex items-center gap-4 px-5 py-4 text-xs font-black uppercase tracking-[0.2em] transition-all duration-300 ${activeTab === 'dashboard' ? 'bg-film-black text-white shadow-2xl shadow-film-black/20 translate-x-2' : 'text-slate-500 hover:bg-slate-50 hover:text-film-black'}`}
+            className={`w-full flex items-center gap-4 px-5 py-3.5 text-xs font-black uppercase tracking-[0.2em] transition-all duration-300 ${activeTab === 'dashboard' ? 'bg-cinema-gold text-film-black shadow-lg translate-x-2' : 'text-text-secondary hover:bg-studio-bg hover:text-white'}`}
           >
             <Activity className="w-5 h-5" />
             Screening
           </button>
           <button 
             onClick={() => setActiveTab('database')}
-            className={`w-full flex items-center gap-4 px-5 py-4 text-xs font-black uppercase tracking-[0.2em] transition-all duration-300 ${activeTab === 'database' ? 'bg-film-black text-white shadow-2xl shadow-film-black/20 translate-x-2' : 'text-slate-500 hover:bg-slate-50 hover:text-film-black'}`}
+            className={`w-full flex items-center gap-4 px-5 py-3.5 text-xs font-black uppercase tracking-[0.2em] transition-all duration-300 ${activeTab === 'database' ? 'bg-cinema-gold text-film-black shadow-lg translate-x-2' : 'text-text-secondary hover:bg-studio-bg hover:text-white'}`}
           >
             <Globe className="w-5 h-5" />
             Intelligence
           </button>
           <button 
             onClick={() => setActiveTab('compliance')}
-            className={`w-full flex items-center gap-4 px-5 py-4 text-xs font-black uppercase tracking-[0.2em] transition-all duration-300 ${activeTab === 'compliance' ? 'bg-film-black text-white shadow-2xl shadow-film-black/20 translate-x-2' : 'text-slate-500 hover:bg-slate-50 hover:text-film-black'}`}
+            className={`w-full flex items-center gap-4 px-5 py-3.5 text-xs font-black uppercase tracking-[0.2em] transition-all duration-300 ${activeTab === 'compliance' ? 'bg-cinema-gold text-film-black shadow-lg translate-x-2' : 'text-text-secondary hover:bg-studio-bg hover:text-white'}`}
           >
             <Search className="w-5 h-5" />
             Compliance
           </button>
           <button 
             onClick={() => setActiveTab('review')}
-            className={`w-full flex items-center gap-4 px-5 py-4 text-xs font-black uppercase tracking-[0.2em] transition-all duration-300 ${activeTab === 'review' ? 'bg-film-black text-white shadow-2xl shadow-film-black/20 translate-x-2' : 'text-slate-500 hover:bg-slate-50 hover:text-film-black'}`}
+            className={`w-full flex items-center gap-4 px-5 py-3.5 text-xs font-black uppercase tracking-[0.2em] transition-all duration-300 ${activeTab === 'review' ? 'bg-cinema-gold text-film-black shadow-lg translate-x-2' : 'text-text-secondary hover:bg-studio-bg hover:text-white'}`}
           >
             <Users className="w-5 h-5" />
             Review Room
           </button>
           <button 
             onClick={() => setActiveTab('benchmark')}
-            className={`w-full flex items-center gap-4 px-5 py-4 text-xs font-black uppercase tracking-[0.2em] transition-all duration-300 ${activeTab === 'benchmark' ? 'bg-film-black text-white shadow-2xl shadow-film-black/20 translate-x-2' : 'text-slate-500 hover:bg-slate-50 hover:text-film-black'}`}
+            className={`w-full flex items-center gap-4 px-5 py-3.5 text-xs font-black uppercase tracking-[0.2em] transition-all duration-300 ${activeTab === 'benchmark' ? 'bg-cinema-gold text-film-black shadow-lg translate-x-2' : 'text-text-secondary hover:bg-studio-bg hover:text-white'}`}
           >
             <TrendingUp className="w-5 h-5" />
             Benchmark
           </button>
           <button 
             onClick={() => setActiveTab('history')}
-            className={`w-full flex items-center gap-4 px-5 py-4 text-xs font-black uppercase tracking-[0.2em] transition-all duration-300 ${activeTab === 'history' ? 'bg-film-black text-white shadow-2xl shadow-film-black/20 translate-x-2' : 'text-slate-500 hover:bg-slate-50 hover:text-film-black'}`}
+            className={`w-full flex items-center gap-4 px-5 py-3.5 text-xs font-black uppercase tracking-[0.2em] transition-all duration-300 ${activeTab === 'history' ? 'bg-cinema-gold text-film-black shadow-lg translate-x-2' : 'text-text-secondary hover:bg-studio-bg hover:text-white'}`}
           >
             <Clock className="w-5 h-5" />
             History
           </button>
+          <button 
+            onClick={() => setActiveTab('settings')}
+            className={`w-full flex items-center gap-4 px-5 py-3.5 text-xs font-black uppercase tracking-[0.2em] transition-all duration-300 ${activeTab === 'settings' ? 'bg-cinema-gold text-film-black shadow-lg translate-x-2' : 'text-text-secondary hover:bg-studio-bg hover:text-white'}`}
+          >
+            <Sliders className="w-5 h-5" />
+            Settings
+          </button>
         </nav>
-
         {history.length > 0 && (
           <div className="px-6 mb-6">
-            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Recent Uploads</h4>
+            <h4 className="text-[10px] font-black text-text-muted uppercase tracking-widest mb-4">Recent Uploads</h4>
             <div className="space-y-3">
               {history.map(item => (
                 <div key={item.id} className="flex items-center gap-3 group cursor-pointer">
-                  <div className="w-12 h-8 bg-slate-100 overflow-hidden border border-slate-200">
+                  <div className="w-12 h-8 bg-studio-bg overflow-hidden border border-border-color">
                     <img src={item.thumbnail} alt="" className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-[10px] font-black text-film-black truncate uppercase tracking-tighter">{item.title}</p>
+                    <p className="text-[10px] font-black text-text-primary truncate uppercase tracking-tighter">{item.title}</p>
                     <p className={`text-[9px] font-bold ${getRatingColorClass(item.rating)}`}>{item.rating}</p>
                   </div>
                 </div>
@@ -771,20 +780,20 @@ function App() {
           </div>
         )}
 
-        <div className="p-6 border-t border-slate-100">
-           <div className="bg-slate-50 p-4 text-[10px] text-slate-500 font-bold uppercase tracking-widest border border-slate-100">
-             <p className="mb-3 text-film-black border-b border-slate-200 pb-2">Studio Status</p>
+        <div className="p-6 border-t border-border-color">
+           <div className="bg-studio-bg p-4 text-[10px] text-text-secondary font-bold uppercase tracking-widest border border-border-color">
+             <p className="mb-3 text-text-primary border-b border-border-color pb-2">Studio Status</p>
              <div className="flex justify-between mb-2">
-               <span>Gemini 3 Engine</span>
-               <span className="text-emerald-700">Active</span>
+               <span>Gemini API Engine</span>
+               <span className="text-emerald-500">Active</span>
              </div>
              <div className="flex justify-between mb-2">
                <span>Token Usage</span>
-               <span className="text-film-black">1.2M / 2.0M</span>
+               <span className="text-text-primary">1.2M / 2.0M</span>
              </div>
              <div className="flex justify-between mb-2">
                <span>Queue Position</span>
-               <span className="text-film-black">0 (Real-time)</span>
+               <span className="text-text-primary">0 (Real-time)</span>
              </div>
              <div className="flex justify-between">
                <span>Processing</span>
@@ -795,26 +804,31 @@ function App() {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto z-10">
-        <header className="h-20 border-b border-slate-200 bg-white/90 backdrop-blur-xl sticky top-0 z-30 flex items-center justify-between px-10">
-           <h1 className="font-serif font-black text-2xl text-film-black uppercase tracking-tight">
-             {activeTab === 'dashboard' ? 'Certification Dashboard' : 'Global Intelligence'}
+      <main className="flex-1 overflow-y-auto z-10 bg-studio-bg">
+        <header className="h-20 border-b border-border-color bg-panel-bg/90 backdrop-blur-xl sticky top-0 z-30 flex items-center justify-between px-10">
+           <h1 className="font-serif font-black text-2xl text-text-primary uppercase tracking-tight">
+             {activeTab === 'dashboard' ? 'Screening Room' : 
+              activeTab === 'database' ? 'Global Intelligence' : 
+              activeTab === 'compliance' ? 'Compliance Status' : 
+              activeTab === 'review' ? 'Review Board' : 
+              activeTab === 'benchmark' ? 'Benchmark Target' : 
+              activeTab === 'history' ? 'Project Archive' : 'Engine Settings'}
            </h1>
            <div className="flex items-center gap-6">
              {activeTab === 'dashboard' && (
-                 <select 
-                    className="bg-slate-50 border border-slate-200 text-[10px] font-black uppercase tracking-widest px-4 py-2 text-film-black focus:outline-none focus:border-cinema-gold cursor-pointer"
-                    value={region}
-                    onChange={(e) => setRegion(e.target.value)}
-                 >
-                   <option value="US">USA (MPAA)</option>
-                   <option value="IN">India (CBFC)</option>
-                   <option value="UK">UK (BBFC)</option>
-                   <option value="DE">Germany (FSK)</option>
-                   <option value="JP">Japan (EIRIN)</option>
-                 </select>
+                  <select 
+                     className="bg-studio-bg border border-border-color text-[10px] font-black uppercase tracking-widest px-4 py-2 text-text-primary focus:outline-none focus:border-cinema-gold cursor-pointer"
+                     value={region}
+                     onChange={(e) => setRegion(e.target.value)}
+                  >
+                    <option value="US">USA (MPAA)</option>
+                    <option value="IN">India (CBFC)</option>
+                    <option value="UK">UK (BBFC)</option>
+                    <option value="DE">Germany (FSK)</option>
+                    <option value="JP">Japan (EIRIN)</option>
+                  </select>
              )}
-             <div className="h-10 w-10 bg-film-black flex items-center justify-center text-xs font-black text-cinema-gold shadow-lg">
+             <div className="h-10 w-10 bg-studio-bg border border-border-color flex items-center justify-center text-xs font-black text-cinema-gold shadow-lg">
                AI
              </div>
            </div>
@@ -822,6 +836,7 @@ function App() {
 
         {renderContent()}
       </main>
+
     </div>
   );
 }

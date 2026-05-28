@@ -84,9 +84,10 @@ async function withRetry<T>(
     } catch (error: any) {
         if (retries <= 0) throw error;
         
-        const status = error.status;
-        const code = error.code || error.statusCode;
-        const msg = error.message || '';
+        const errObj = error.error || error;
+        const status = error.status || errObj.status;
+        const code = error.code || error.statusCode || errObj.code;
+        const msg = error.message || errObj.message || '';
         
         // Catch 503 (Service Unavailable / UNAVAILABLE), 504 (Gateway Timeout / DEADLINE_EXCEEDED), 
         // 429 (Too Many Requests / RESOURCE_EXHAUSTED), and fetch failures
@@ -106,7 +107,9 @@ async function withRetry<T>(
             msg.includes('429') ||
             msg.includes('Service Unavailable') ||
             msg.includes('Gateway Timeout') ||
-            msg.includes('Too Many Requests');
+            msg.includes('Too Many Requests') ||
+            msg.includes('demand') ||
+            msg.includes('temporary');
 
         if (!isRetryable && retries < 2) throw error; // Don't retry logic errors indefinitely
 
@@ -434,20 +437,18 @@ export const analyzeContent = async (
 
   } catch (error: any) {
     console.error("Gemini Analysis Failed after Retries:", error);
-    const isSafetyError = error.message?.includes("SAFETY");
-    return {
-      overallRating: Rating.Unrated,
-      score: 0,
-      summary: isSafetyError 
-        ? "Analysis blocked by AI Safety Filters. The content may be too explicit for the current model configuration." 
-        : "System is experiencing heavy load or connectivity issues. Please try again.",
-      detailedAnalysis: error.message || "Unknown error occurred.",
-      triggers: [],
-      suggestedCuts: [],
-      culturalNotes: "Error Code: " + (error.status || 'Client_Error'),
-      thematicIntensity: { dread: 0, tension: 0, melancholy: 0 },
-      syntheticContent: []
-    };
+    const errObj = error.error || error;
+    const msg = errObj.message || error.message || "Unknown error occurred during analysis.";
+    const isSafetyError = msg.includes("SAFETY") || msg.includes("safety");
+    const is503 = msg.includes("503") || msg.includes("UNAVAILABLE") || msg.includes("demand") || msg.includes("temporary");
+    
+    if (isSafetyError) {
+        throw new Error("Analysis blocked by AI Safety Filters. The content may be too explicit for the current model configuration.");
+    } else if (is503) {
+        throw new Error("The Gemini AI service is currently experiencing high demand. Please try again in a few moments.");
+    } else {
+        throw new Error(`AI Analysis Failed: ${msg}`);
+    }
   }
 };
 

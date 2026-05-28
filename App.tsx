@@ -1106,6 +1106,29 @@ function App() {
             </div>
         )}
 
+        {/* Fallback Demo Mode Warning Banner */}
+        {analysis && analysis.fallbackDemoMode && (
+            <div className="max-w-6xl mx-auto mt-8 px-8 animate-in slide-in-from-top duration-500">
+                <div className="bg-amber-950/20 border border-cinema-gold text-text-primary p-6 flex flex-col md:flex-row items-center justify-between gap-4">
+                    <div className="flex items-center gap-4">
+                        <Shield className="w-8 h-8 text-cinema-gold flex-shrink-0 animate-pulse" />
+                        <div>
+                            <h4 className="font-black uppercase tracking-widest text-xs text-cinema-gold">Sandbox Demo Engine Fallback</h4>
+                            <p className="text-xs text-text-secondary mt-1">
+                                The live AI request encountered an error (Network/Quota/Token failure). ContentGuard AI automatically fell back to the local high-fidelity Demo Sandbox Engine to ensure a smooth evaluation experience.
+                            </p>
+                        </div>
+                    </div>
+                    <button 
+                        onClick={() => setActiveTab('settings')}
+                        className="px-4 py-2 bg-cinema-gold text-film-black text-[10px] font-black uppercase tracking-widest hover:bg-yellow-600 transition-colors cursor-pointer"
+                    >
+                        Check Settings
+                    </button>
+                </div>
+            </div>
+        )}
+
         {renderContent()}
       </main>
 

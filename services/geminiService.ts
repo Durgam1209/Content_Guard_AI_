@@ -51,6 +51,17 @@ export const setHFConfig = (token: string, textModel: string, whisperModel: stri
     localStorage.setItem('HF_CAPTION_MODEL', captionModel);
 };
 
+export const getOpenRouterConfig = () => {
+    const apiKey = localStorage.getItem('OPENROUTER_API_KEY') || '';
+    const model = localStorage.getItem('OPENROUTER_MODEL') || 'meta-llama/llama-3-8b-instruct:free';
+    return { apiKey, model };
+};
+
+export const setOpenRouterConfig = (apiKey: string, model: string) => {
+    localStorage.setItem('OPENROUTER_API_KEY', apiKey);
+    localStorage.setItem('OPENROUTER_MODEL', model);
+};
+
 export const getGeminiConfig = () => {
     const apiKey = customApiKey || 
         localStorage.getItem('GEMINI_API_KEY') || 
@@ -511,6 +522,46 @@ const generateMockMovieKnowledge = (title: string): MovieKnowledge => {
     };
   }
 };
+const fetchHF = async (model: string, init: RequestInit): Promise<Response> => {
+    try {
+        const proxyResponse = await fetch(`/hf-proxy/models/${model}`, init);
+        if (proxyResponse.status !== 404) {
+            return proxyResponse;
+        }
+    } catch (proxyError) {
+        console.warn("HF Proxy fetch failed, trying direct HF URL...", proxyError);
+    }
+    return await fetch(`https://api-inference.huggingface.co/models/${model}`, init);
+};
+
+const callTextModelOpenRouter = async (apiKey: string, model: string, systemPrompt: string, userPrompt: string): Promise<string> => {
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+            "Authorization": `Bearer ${apiKey}`,
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            model: model,
+            messages: [
+                { role: "system", content: systemPrompt },
+                { role: "user", content: userPrompt }
+            ],
+            temperature: 0.1
+        })
+    });
+    
+    if (!response.ok) {
+        throw new Error(`OpenRouter query failed with status: ${response.status} ${response.statusText}`);
+    }
+    
+    const result = await response.json();
+    const text = result.choices?.[0]?.message?.content;
+    if (!text) {
+        throw new Error("Unexpected OpenRouter response format");
+    }
+    return text;
+};
 
 const captionImageHF = async (token: string, model: string, base64Image: string): Promise<string> => {
     const cleanData = base64Image.split(',')[1] || base64Image;
@@ -521,7 +572,7 @@ const captionImageHF = async (token: string, model: string, base64Image: string)
         bytes[i] = binaryString.charCodeAt(i);
     }
     
-    const response = await fetch(`https://api-inference.huggingface.co/models/${model}`, {
+    const response = await fetchHF(model, {
         method: "POST",
         headers: {
             "Authorization": `Bearer ${token}`,
@@ -546,7 +597,7 @@ const transcribeAudioHF = async (token: string, model: string, base64Audio: stri
         bytes[i] = binaryString.charCodeAt(i);
     }
     
-    const response = await fetch(`https://api-inference.huggingface.co/models/${model}`, {
+    const response = await fetchHF(model, {
         method: "POST",
         headers: {
             "Authorization": `Bearer ${token}`,
@@ -561,7 +612,7 @@ const transcribeAudioHF = async (token: string, model: string, base64Audio: stri
 };
 
 const callTextModelHF = async (token: string, model: string, systemPrompt: string, userPrompt: string): Promise<string> => {
-    const response = await fetch(`https://api-inference.huggingface.co/models/${model}`, {
+    const response = await fetchHF(model, {
         method: "POST",
         headers: {
             "Authorization": `Bearer ${token}`,
@@ -710,36 +761,169 @@ const analyzeContentHF = async (
  * Analyzes content.
  * Supports text, video frames (visual), and audio (auditory) analysis.
  */
+const analyzeContentOpenRouter = async (
+  input: { text?: string; images?: string[]; audio?: string; duration?: number },
+  region: string,
+  apiKey: string,
+  model: string
+): Promise<AnalysisResult> => {
+    const duration = input.duration || 600;
+    const config = REGION_CONFIGS[region] || REGION_CONFIGS['US'];
+    
+    let transcript = "";
+    let captions: string[] = [];
+    const tasks: Promise<any>[] = [];
+    
+    const hf = getHFConfig();
+    if (input.audio && hf.token) {
+        tasks.push(
+            transcribeAudioHF(hf.token, hf.whisperModel, input.audio)
+                .then(res => { transcript = res; })
+                .catch(err => console.warn("Whisper transcription error:", err))
+        );
+    }
+    
+    if (input.images && input.images.length > 0 && hf.token) {
+        const imageTasks = input.images.map((img, idx) => 
+            captionImageHF(hf.token, hf.captionModel, img)
+                .then(caption => { captions.push(`[Frame at T+${Math.floor(idx * (duration / input.images!.length))}s]: ${caption}`); })
+                .catch(() => {})
+        );
+        tasks.push(Promise.all(imageTasks));
+    }
+    
+    await Promise.all(tasks);
+    
+    const basePrompt = `
+      You are an expert film certification and content rating specialist.
+      Analyze the provided content to determine the age rating for region ${region}.
+      
+      ${config.instructions}
+    `;
+    
+    const userPrompt = `
+      Determine:
+      1. The likely certification rating based on the region. Valid ratings are: ${config.validRatings.join(', ')}
+      2. A list of specific triggers (Violence, Profanity, Substance, Sexual, Theme, Synthetic).
+      3. A numeric intensity score (0-100).
+      4. A concise summary of the reasoning.
+      5. Detailed Analysis Report explaining the rating.
+      6. Suggested Cuts with start/end timecodes.
+      7. Thematic Intensity Scores (0-100) for Dread, Tension, Melancholy.
+      
+      Input Data:
+      ${input.text ? `Scene Description: "${input.text}"` : ""}
+      ${transcript ? `Audio Speech Transcript: "${transcript}"` : ""}
+      ${captions.length > 0 ? `Visual Frame Descriptions:\n${captions.join('\n')}` : ""}
+      
+      Provide the response strictly as a single JSON object with this format, without markdown wrapping:
+      {
+        "overallRating": "R",
+        "score": 65,
+        "summary": "Brief summary...",
+        "detailedAnalysis": "Formal report paragraph...",
+        "culturalNotes": "Regional standards explanation...",
+        "triggers": [
+           { "type": "Violence", "timestamp": 45, "description": "Trigger description...", "severity": "Medium", "confidence": 0.85, "intent": "Aggressive", "tone": "Dramatic" }
+        ],
+        "suggestedCuts": [
+           { "startTime": 40, "endTime": 50, "reason": "Cut description...", "type": "Violence" }
+        ],
+        "thematicIntensity": { "dread": 40, "tension": 50, "melancholy": 10 },
+        "syntheticContent": []
+      }
+    `;
+    
+    const textResponse = await callTextModelOpenRouter(apiKey, model, basePrompt, userPrompt);
+    const parsed = cleanAndParseJSON(textResponse);
+    
+    const rawTriggers: ContentTrigger[] = (parsed.triggers || []).map((t: any, idx: number) => ({
+      ...t,
+      id: `trig-${idx}-${Date.now()}`,
+      timestamp: t.timestamp !== undefined ? Math.floor(t.timestamp) : Math.floor(Math.random() * duration)
+    }));
+
+    const fusedTriggers = fuseTemporalEvents(rawTriggers);
+
+    const suggestedCuts: SuggestedCut[] = (parsed.suggestedCuts || []).map((c: any, idx: number) => ({
+      ...c,
+      id: `cut-${idx}-${Date.now()}`
+    }));
+
+    return {
+      overallRating: parsed.overallRating as Rating,
+      score: parsed.score || 0,
+      summary: parsed.summary || "Analysis complete.",
+      detailedAnalysis: parsed.detailedAnalysis || parsed.summary || "No detailed report available.", 
+      triggers: fusedTriggers,
+      suggestedCuts: suggestedCuts,
+      culturalNotes: parsed.culturalNotes || "No specific cultural notes.",
+      thematicIntensity: parsed.thematicIntensity || { dread: 0, tension: 0, melancholy: 0 },
+      syntheticContent: [],
+      financialImpact: {
+         predictedRevenue: parsed.financialImpact?.predictedRevenue || "$12.5M",
+         ratingPenalty: parsed.financialImpact?.ratingPenalty || "Minimal",
+         marketAccess: parsed.financialImpact?.marketAccess || ["Wide Release"]
+      }
+    };
+};
+
 export const analyzeContent = async (
   input: { text?: string; images?: string[]; audio?: string; duration?: number },
   region: string = "US"
 ): Promise<AnalysisResult> => {
-  
   const provider = getProviderConfig();
   const isDemoMode = getDemoModeConfig();
-  const { apiKey } = getGeminiConfig();
-  const { token, textModel, whisperModel, captionModel } = getHFConfig();
-  
-  // If provider is Hugging Face AND token is present, we bypass Gemini / Demo Mode
-  if (provider === 'huggingface' && token) {
+
+  const runFallback = (error: any): AnalysisResult => {
+      console.warn("Live AI analysis failed. Falling back to Demo Sandbox Engine.", error);
+      const mockResult = generateMockAnalysis(input, region);
+      return {
+          ...mockResult,
+          fallbackDemoMode: true
+      };
+  };
+
+  if (isDemoMode) {
+      await new Promise(res => setTimeout(res, 2500));
+      return {
+          ...generateMockAnalysis(input, region),
+          fallbackDemoMode: false
+      };
+  }
+
+  if (provider === 'openrouter') {
+      const { apiKey, model } = getOpenRouterConfig();
+      if (!apiKey) {
+          return runFallback(new Error("OpenRouter API Key is missing. Please configure your key in settings."));
+      }
       try {
-          return await analyzeContentHF(input, region, token, textModel, whisperModel, captionModel);
+          return await analyzeContentOpenRouter(input, region, apiKey, model);
       } catch (error: any) {
-          console.error("Hugging Face Pipeline Failed:", error);
-          throw new Error(`Hugging Face Analysis Failed: ${error.message || error}`);
+          return runFallback(error);
       }
   }
 
-  // Fallback to Demo Mode if no Gemini API Key is provided or demo mode is on
-  if (isDemoMode || !apiKey) {
-      await new Promise(res => setTimeout(res, 2500));
-      return generateMockAnalysis(input, region);
+  if (provider === 'huggingface') {
+      const { token, textModel, whisperModel, captionModel } = getHFConfig();
+      if (!token) {
+          return runFallback(new Error("Hugging Face Access Token is missing. Please configure your token in settings."));
+      }
+      try {
+          return await analyzeContentHF(input, region, token, textModel, whisperModel, captionModel);
+      } catch (error: any) {
+          return runFallback(error);
+      }
+  }
+
+  // Gemini live path
+  const { apiKey } = getGeminiConfig();
+  if (!apiKey) {
+      return runFallback(new Error("Gemini API Key is missing."));
   }
 
   const isVideo = (input.images && input.images.length > 0) || !!input.audio;
-  const duration = input.duration || 600; // Default 10 mins if unknown
-  
-  // Resolve Region Configuration
+  const duration = input.duration || 600;
   const config = REGION_CONFIGS[region] || REGION_CONFIGS['US'];
 
   const basePrompt = `
@@ -780,13 +964,10 @@ export const analyzeContent = async (
     ${isVideo ? 'Analyze the multi-modal inputs (visuals and/or audio) combined.' : `Scene Description: "${input.text}"`}
   `;
 
-  // Construct parts for Gemini
   const parts: any[] = [{ text: basePrompt }];
 
-  // Add Visuals
   if (input.images) {
     input.images.forEach(base64Data => {
-      // Strip header if present (data:image/jpeg;base64,)
       const cleanData = base64Data.split(',')[1] || base64Data;
       parts.push({
         inlineData: {
@@ -797,7 +978,6 @@ export const analyzeContent = async (
     });
   }
 
-  // Add Audio
   if (input.audio) {
     parts.push({
         inlineData: {
@@ -808,7 +988,6 @@ export const analyzeContent = async (
   }
 
   try {
-    // Wrap the API call in our retry logic
     const resultText = await withRetry(async () => {
         const client = getGeminiClient();
         const { model } = getGeminiConfig();
@@ -894,15 +1073,12 @@ export const analyzeContent = async (
     });
 
     const parsed = cleanAndParseJSON(resultText);
-
-    // Map parsed data to our internal structure with fail-safes
     const rawTriggers: ContentTrigger[] = (parsed.triggers || []).map((t: any, idx: number) => ({
       ...t,
       id: `trig-${idx}-${Date.now()}`,
       timestamp: t.timestamp !== undefined ? Math.floor(t.timestamp) : Math.floor(Math.random() * duration)
     }));
 
-    // Apply Temporal Event Fusion to cross-reference multi-modal indicators (visual + auditory)
     const fusedTriggers = fuseTemporalEvents(rawTriggers);
 
     const suggestedCuts: SuggestedCut[] = (parsed.suggestedCuts || []).map((c: any, idx: number) => ({
@@ -923,39 +1099,11 @@ export const analyzeContent = async (
         ...s,
         id: `synth-${idx}-${Date.now()}`
       })),
-      financialImpact: parsed.financialImpact
+      financialImpact: parsed.financialImpact,
+      fallbackDemoMode: false
     };
-
   } catch (error: any) {
-    console.error("Gemini Analysis Failed after Retries:", error);
-    
-    let errObj = error.error;
-    const rawMsg = error.message || '';
-    
-    // Parse JSON string messages from the SDK
-    if (rawMsg.trim().startsWith('{')) {
-        try {
-            const parsed = JSON.parse(rawMsg);
-            errObj = parsed.error || parsed;
-        } catch (e) {}
-    }
-    
-    const msg = errObj?.message || error.message || "Unknown error occurred during analysis.";
-    const statusStr = errObj?.status || error.status || "Client_Error";
-    
-    const isSafetyError = msg.toLowerCase().includes("safety");
-    const isQuotaError = statusStr === 'RESOURCE_EXHAUSTED' || msg.includes('429') || msg.toLowerCase().includes('quota') || msg.toLowerCase().includes('rate limit');
-    const is503 = statusStr === 'UNAVAILABLE' || msg.includes('503') || msg.toLowerCase().includes('demand') || msg.toLowerCase().includes('temporary');
-    
-    if (isSafetyError) {
-        throw new Error("Analysis blocked by AI Safety Filters. The content may be too explicit for the current model configuration.");
-    } else if (isQuotaError) {
-        throw new Error("You have exceeded your Gemini API quota or rate limit. Please wait a few moments or switch to a paid API key in settings.");
-    } else if (is503) {
-        throw new Error("The Gemini AI service is currently experiencing high demand. Please try again in a few moments.");
-    } else {
-        throw new Error(`AI Analysis Failed (${statusStr}): ${msg}`);
-    }
+    return runFallback(error);
   }
 };
 

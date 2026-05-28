@@ -8,7 +8,9 @@ import {
     getProviderConfig,
     setProviderConfig,
     getHFConfig,
-    setHFConfig
+    setHFConfig,
+    getOpenRouterConfig,
+    setOpenRouterConfig
 } from '../services/geminiService';
 import { GoogleGenAI } from '@google/genai';
 
@@ -25,9 +27,14 @@ export const SettingsPanel = () => {
     const [hfWhisperModel, setHfWhisperModel] = useState('openai/whisper-large-v3');
     const [hfCaptionModel, setHfCaptionModel] = useState('Salesforce/blip-image-captioning-large');
     
+    // OpenRouter Settings
+    const [openrouterKey, setOpenrouterKey] = useState('');
+    const [openrouterModel, setOpenrouterModel] = useState('meta-llama/llama-3-8b-instruct:free');
+    
     const [demoMode, setDemoMode] = useState(false);
     const [showKey, setShowKey] = useState(false);
     const [showHfKey, setShowHfKey] = useState(false);
+    const [showOrKey, setShowOrKey] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
     const [testStatus, setTestStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
@@ -46,6 +53,10 @@ export const SettingsPanel = () => {
         setHfWhisperModel(hf.whisperModel);
         setHfCaptionModel(hf.captionModel);
         
+        const or = getOpenRouterConfig();
+        setOpenrouterKey(or.apiKey);
+        setOpenrouterModel(or.model);
+        
         setDemoMode(getDemoModeConfig());
     }, []);
 
@@ -56,6 +67,7 @@ export const SettingsPanel = () => {
             setProviderConfig(provider);
             setGeminiConfig(apiKey, selectedModel);
             setHFConfig(hfToken, hfTextModel, hfWhisperModel, hfCaptionModel);
+            setOpenRouterConfig(openrouterKey, openrouterModel);
             setDemoModeConfig(demoMode);
             setSaveStatus('success');
             setTimeout(() => setSaveStatus('idle'), 3000);
@@ -92,8 +104,7 @@ export const SettingsPanel = () => {
                 setTestStatus('error');
                 setTestMessage(error.message || 'Connection failed. Verify API Key.');
             }
-        } else {
-            // Test Hugging Face Token using the text model
+        } else if (provider === 'huggingface') {
             if (!hfToken.trim()) {
                 setTestStatus('error');
                 setTestMessage('Please enter a Hugging Face Token first.');
@@ -102,7 +113,7 @@ export const SettingsPanel = () => {
             setTestStatus('testing');
             setTestMessage('');
             try {
-                const response = await fetch(`https://api-inference.huggingface.co/models/${hfTextModel}`, {
+                const response = await fetch(`/hf-proxy/models/${hfTextModel}`, {
                     method: "POST",
                     headers: {
                         "Authorization": `Bearer ${hfToken}`,
@@ -116,13 +127,68 @@ export const SettingsPanel = () => {
                     setTestStatus('success');
                     setTestMessage('Successfully connected to Hugging Face API!');
                 } else {
-                    const err = await response.json();
+                    const err = await response.json().catch(() => ({}));
                     setTestStatus('error');
                     setTestMessage(err.error || `HF Connection Failed: Status ${response.status}`);
                 }
             } catch (error: any) {
+                try {
+                    const response = await fetch(`https://api-inference.huggingface.co/models/${hfTextModel}`, {
+                        method: "POST",
+                        headers: {
+                            "Authorization": `Bearer ${hfToken}`,
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({
+                            inputs: "Respond with 'SUCCESS' and nothing else."
+                        })
+                    });
+                    if (response.ok) {
+                        setTestStatus('success');
+                        setTestMessage('Successfully connected to Hugging Face API!');
+                    } else {
+                        const err = await response.json().catch(() => ({}));
+                        setTestStatus('error');
+                        setTestMessage(err.error || `HF Connection Failed: Status ${response.status}`);
+                    }
+                } catch (err2: any) {
+                    setTestStatus('error');
+                    setTestMessage(err2.message || 'Hugging Face serverless connection timed out.');
+                }
+            }
+        } else if (provider === 'openrouter') {
+            if (!openrouterKey.trim()) {
                 setTestStatus('error');
-                setTestMessage(error.message || 'Hugging Face serverless connection timed out.');
+                setTestMessage('Please enter an OpenRouter API Key first.');
+                return;
+            }
+            setTestStatus('testing');
+            setTestMessage('');
+            try {
+                const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+                    method: "POST",
+                    headers: {
+                        "Authorization": `Bearer ${openrouterKey}`,
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        model: openrouterModel,
+                        messages: [
+                            { role: "user", content: "Respond with 'SUCCESS' and nothing else." }
+                        ]
+                    })
+                });
+                if (response.ok) {
+                    setTestStatus('success');
+                    setTestMessage('Successfully connected to OpenRouter API!');
+                } else {
+                    const err = await response.json().catch(() => ({}));
+                    setTestStatus('error');
+                    setTestMessage(err.error?.message || `OpenRouter Connection Failed: Status ${response.status}`);
+                }
+            } catch (error: any) {
+                setTestStatus('error');
+                setTestMessage(error.message || 'OpenRouter connection failed.');
             }
         }
     };
@@ -140,13 +206,20 @@ export const SettingsPanel = () => {
                     <label className="text-xs font-black uppercase tracking-[0.2em] text-cinema-gold flex items-center gap-2">
                         <Cpu className="w-4 h-4" /> Core Intelligence Provider
                     </label>
-                    <div className="grid grid-cols-2 gap-4 bg-studio-bg p-1.5 border border-border-color max-w-md">
+                    <div className="grid grid-cols-3 gap-4 bg-studio-bg p-1.5 border border-border-color max-w-xl">
                         <button 
                             onClick={() => setProvider('gemini')}
                             type="button"
                             className={`py-3 text-xs font-black uppercase tracking-widest transition-all duration-300 cursor-pointer ${provider === 'gemini' ? 'bg-cinema-gold text-film-black shadow-lg font-black' : 'text-text-secondary hover:text-text-primary'}`}
                         >
                             Google Gemini
+                        </button>
+                        <button 
+                            onClick={() => setProvider('openrouter')}
+                            type="button"
+                            className={`py-3 text-xs font-black uppercase tracking-widest transition-all duration-300 cursor-pointer ${provider === 'openrouter' ? 'bg-cinema-gold text-film-black shadow-lg font-black' : 'text-text-secondary hover:text-text-primary'}`}
+                        >
+                            OpenRouter (Free)
                         </button>
                         <button 
                             onClick={() => setProvider('huggingface')}
@@ -158,10 +231,10 @@ export const SettingsPanel = () => {
                     </div>
                 </div>
 
-                {provider === 'gemini' ? (
-                    <>
+                {provider === 'gemini' && (
+                    <div className="space-y-8 animate-in fade-in duration-500">
                         {/* API Key Section */}
-                        <div className="space-y-4 animate-in fade-in duration-500">
+                        <div className="space-y-4">
                             <label className="text-xs font-black uppercase tracking-[0.2em] text-cinema-gold flex items-center gap-2">
                                 <Key className="w-4 h-4" /> Gemini API Key
                             </label>
@@ -200,7 +273,7 @@ export const SettingsPanel = () => {
                         </div>
 
                         {/* Model Selection */}
-                        <div className="space-y-4 animate-in fade-in duration-500">
+                        <div className="space-y-4">
                             <label className="text-xs font-black uppercase tracking-[0.2em] text-cinema-gold flex items-center gap-2">
                                 <Sliders className="w-4 h-4" /> Gemini Model Configuration
                             </label>
@@ -219,11 +292,76 @@ export const SettingsPanel = () => {
                                 <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
                             </select>
                         </div>
-                    </>
-                ) : (
-                    <>
+                    </div>
+                )}
+
+                {provider === 'openrouter' && (
+                    <div className="space-y-8 animate-in fade-in duration-500">
+                        {/* API Key Section */}
+                        <div className="space-y-4">
+                            <label className="text-xs font-black uppercase tracking-[0.2em] text-cinema-gold flex items-center gap-2">
+                                <Key className="w-4 h-4" /> OpenRouter API Key
+                            </label>
+                            <p className="text-xs text-text-secondary font-medium leading-relaxed">
+                                Provide your OpenRouter API Key to utilize free model endpoints (e.g. Llama 3, Qwen 2) with zero CORS limitations. Keys are saved locally.
+                            </p>
+                            <div className="flex gap-4">
+                                <div className="flex-1 relative">
+                                    <input 
+                                        type={showOrKey ? "text" : "password"} 
+                                        className="w-full bg-studio-bg border border-border-color px-5 py-4 text-text-primary placeholder-text-muted focus:outline-none focus:border-cinema-gold font-mono text-sm leading-relaxed"
+                                        placeholder="sk-or-v1-..."
+                                        value={openrouterKey}
+                                        onChange={(e) => setOpenrouterKey(e.target.value)}
+                                    />
+                                    <button 
+                                        onClick={() => setShowOrKey(!showOrKey)}
+                                        className="absolute right-4 top-4 text-text-secondary hover:text-white transition-colors"
+                                    >
+                                        {showOrKey ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                                    </button>
+                                </div>
+                                <button 
+                                    onClick={handleTestConnection}
+                                    disabled={testStatus === 'testing'}
+                                    className="px-6 py-4 bg-studio-bg hover:bg-panel-bg text-text-primary border border-border-color text-xs font-black uppercase tracking-widest transition-all duration-300 flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                                >
+                                    {testStatus === 'testing' ? (
+                                        <RefreshCw className="w-4 h-4 animate-spin" />
+                                    ) : (
+                                        <ShieldCheck className="w-4 h-4 text-cinema-gold" />
+                                    )}
+                                    Test Token
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Model Selection */}
+                        <div className="space-y-4">
+                            <label className="text-xs font-black uppercase tracking-[0.2em] text-cinema-gold flex items-center gap-2">
+                                <Sliders className="w-4 h-4" /> OpenRouter Model Configuration
+                            </label>
+                            <p className="text-xs text-text-secondary font-medium leading-relaxed">
+                                Select which free model you want to query for the rating compliance writeups.
+                            </p>
+                            <select 
+                                className="w-full bg-studio-bg border border-border-color px-5 py-4 text-text-primary focus:outline-none focus:border-cinema-gold cursor-pointer font-black text-xs uppercase tracking-widest"
+                                value={openrouterModel}
+                                onChange={(e) => setOpenrouterModel(e.target.value)}
+                            >
+                                <option value="meta-llama/llama-3-8b-instruct:free">Llama 3 8B Instruct (Free)</option>
+                                <option value="qwen/qwen-2-7b-instruct:free">Qwen 2 7B Instruct (Free)</option>
+                                <option value="mistralai/mistral-7b-instruct:free">Mistral 7B Instruct (Free)</option>
+                                <option value="google/gemma-2-9b-it:free">Gemma 2 9B It (Free)</option>
+                            </select>
+                        </div>
+                    </div>
+                )}
+
+                {provider === 'huggingface' && (
+                    <div className="space-y-8 animate-in fade-in duration-500">
                         {/* Hugging Face Settings */}
-                        <div className="space-y-4 animate-in fade-in duration-500">
+                        <div className="space-y-4">
                             <label className="text-xs font-black uppercase tracking-[0.2em] text-cinema-gold flex items-center gap-2">
                                 <Key className="w-4 h-4" /> Hugging Face Access Token
                             </label>
@@ -262,7 +400,7 @@ export const SettingsPanel = () => {
                         </div>
 
                         {/* Hugging Face Models Customization */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-in fade-in duration-500">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black uppercase tracking-widest text-cinema-gold">Llama/Text Model</label>
                                 <input 
@@ -291,7 +429,7 @@ export const SettingsPanel = () => {
                                 />
                             </div>
                         </div>
-                    </>
+                    </div>
                 )}
 
                 {/* Connection Status Reports */}

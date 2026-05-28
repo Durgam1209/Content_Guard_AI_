@@ -87,6 +87,7 @@ export interface AnalysisResult {
     ratingPenalty: string;
     marketAccess: string[];
   };
+  fallbackDemoMode?: boolean;
 }
 
 export interface TimelinePoint {

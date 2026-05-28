@@ -9,6 +9,13 @@ export default defineConfig(({ mode }) => {
       server: {
         port: 3000,
         host: '0.0.0.0',
+        proxy: {
+          '/hf-proxy': {
+            target: 'https://api-inference.huggingface.co',
+            changeOrigin: true,
+            rewrite: (path) => path.replace(/^\/hf-proxy/, '')
+          }
+        }
       },
       plugins: [react(), tailwindcss()],
       define: {

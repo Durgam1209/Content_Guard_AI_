@@ -84,13 +84,21 @@ async function withRetry<T>(
     } catch (error: any) {
         if (retries <= 0) throw error;
         
-        const errObj = error.error || error;
-        const status = error.status || errObj.status;
-        const code = error.code || error.statusCode || errObj.code;
-        const msg = error.message || errObj.message || '';
+        let errObj = error.error;
+        const rawMsg = error.message || '';
         
-        // Catch 503 (Service Unavailable / UNAVAILABLE), 504 (Gateway Timeout / DEADLINE_EXCEEDED), 
-        // 429 (Too Many Requests / RESOURCE_EXHAUSTED), and fetch failures
+        if (rawMsg.trim().startsWith('{')) {
+            try {
+                const parsed = JSON.parse(rawMsg);
+                errObj = parsed.error || parsed;
+            } catch (e) {}
+        }
+        
+        const status = error.status || errObj?.status;
+        const code = error.code || error.statusCode || errObj?.code;
+        const msg = error.message || errObj?.message || '';
+        
+        // Catch 503 (Service Unavailable), 504 (Gateway Timeout), 429 (Quota Exceeded / Rate Limited), etc.
         const isRetryable = 
             status === 503 || 
             code === 503 || 
@@ -109,7 +117,9 @@ async function withRetry<T>(
             msg.includes('Gateway Timeout') ||
             msg.includes('Too Many Requests') ||
             msg.includes('demand') ||
-            msg.includes('temporary');
+            msg.includes('temporary') ||
+            msg.includes('quota') ||
+            msg.includes('limit');
 
         if (!isRetryable && retries < 2) throw error; // Don't retry logic errors indefinitely
 
@@ -437,17 +447,33 @@ export const analyzeContent = async (
 
   } catch (error: any) {
     console.error("Gemini Analysis Failed after Retries:", error);
-    const errObj = error.error || error;
-    const msg = errObj.message || error.message || "Unknown error occurred during analysis.";
-    const isSafetyError = msg.includes("SAFETY") || msg.includes("safety");
-    const is503 = msg.includes("503") || msg.includes("UNAVAILABLE") || msg.includes("demand") || msg.includes("temporary");
+    
+    let errObj = error.error;
+    const rawMsg = error.message || '';
+    
+    // Parse JSON string messages from the SDK
+    if (rawMsg.trim().startsWith('{')) {
+        try {
+            const parsed = JSON.parse(rawMsg);
+            errObj = parsed.error || parsed;
+        } catch (e) {}
+    }
+    
+    const msg = errObj?.message || error.message || "Unknown error occurred during analysis.";
+    const statusStr = errObj?.status || error.status || "Client_Error";
+    
+    const isSafetyError = msg.toLowerCase().includes("safety");
+    const isQuotaError = statusStr === 'RESOURCE_EXHAUSTED' || msg.includes('429') || msg.toLowerCase().includes('quota') || msg.toLowerCase().includes('rate limit');
+    const is503 = statusStr === 'UNAVAILABLE' || msg.includes('503') || msg.toLowerCase().includes('demand') || msg.toLowerCase().includes('temporary');
     
     if (isSafetyError) {
         throw new Error("Analysis blocked by AI Safety Filters. The content may be too explicit for the current model configuration.");
+    } else if (isQuotaError) {
+        throw new Error("You have exceeded your Gemini API quota or rate limit. Please wait a few moments or switch to a paid API key in settings.");
     } else if (is503) {
         throw new Error("The Gemini AI service is currently experiencing high demand. Please try again in a few moments.");
     } else {
-        throw new Error(`AI Analysis Failed: ${msg}`);
+        throw new Error(`AI Analysis Failed (${statusStr}): ${msg}`);
     }
   }
 };

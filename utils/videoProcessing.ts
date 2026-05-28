@@ -98,6 +98,7 @@ export const extractSmartFrames = async (
         
         let diff = 0;
         let redDominance = 0;
+        let skinPixels = 0;
         let brightness = 0;
         const sampleStep = 4;
 
@@ -109,17 +110,28 @@ export const extractSmartFrames = async (
             if (prevData) {
                 diff += Math.abs(r - prevData[j]) + Math.abs(g - prevData[j+1]) + Math.abs(b - prevData[j+2]);
             }
+            
+            // Red dominance check (detects fire/explosion/blood)
             if (r > 160 && g < 90 && b < 90) redDominance++;
+            
+            // RGB Skin Color Heuristic for potential nudity/sexual theme detection
+            const isSkin = r > 95 && g > 40 && b > 20 &&
+                           (Math.max(r, g, b) - Math.min(r, g, b) > 15) &&
+                           Math.abs(r - g) > 15 &&
+                           r > g && r > b;
+            if (isSkin) skinPixels++;
+            
             brightness += (r + g + b) / 3;
         }
 
         const sampledPixels = (frameData.length / 4) / sampleStep;
         const motionScore = prevData ? (diff / (sampledPixels * 3 * 255)) * 100 : 0;
         const redScore = (redDominance / sampledPixels) * 100;
+        const skinScore = (skinPixels / sampledPixels) * 100;
         const avgBrightness = brightness / sampledPixels;
 
-        // Composite Score
-        let score = motionScore + (redScore * 4);
+        // Composite Score combines motion vectors, red warnings, and skin density alerts
+        let score = motionScore + (redScore * 5) + (skinScore * 3);
         if (avgBrightness < 20 && motionScore < 15) score *= 0.1; // Skip dark/static frames
 
         // Extraction (Only if it's a potential candidate)

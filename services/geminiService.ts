@@ -176,6 +176,42 @@ const REGION_CONFIGS: Record<string, { instructions: string; validRatings: strin
 };
 
 /**
+ * Programmatic Temporal Event Fusion
+ * Cross-references triggers within a 5-second window to detect correlated threats
+ * (e.g., visual weapon/aggression + auditory screaming/gunshots/hate speech)
+ * and elevates their severity or updates their descriptions to reflect the fused context.
+ */
+export const fuseTemporalEvents = (triggers: ContentTrigger[]): ContentTrigger[] => {
+    const sorted = [...triggers].sort((a, b) => a.timestamp - b.timestamp);
+    const fused: ContentTrigger[] = [];
+    const windowSeconds = 5;
+
+    for (let i = 0; i < sorted.length; i++) {
+        let current = { ...sorted[i] };
+
+        for (let j = i + 1; j < sorted.length; j++) {
+            const next = sorted[j];
+            if (next.timestamp - current.timestamp > windowSeconds) break;
+
+            const isVisualThreat = current.type === 'Violence' || current.type === 'Sexual' || current.type === 'Theme';
+            const isAudioThreat = next.type === 'Profanity' || next.type === 'Substance' || next.type === 'Violence';
+            
+            if (isVisualThreat && isAudioThreat) {
+                current.severity = 'High';
+                current.description = `[Fused Multi-Modal Event] ${current.description} at TC ${Math.floor(current.timestamp/60)}:${Math.floor(current.timestamp%60).toString().padStart(2,'0')} correlated with auditory triggers (${next.description}) within a close temporal window.`;
+                current.confidence = Math.min(1.0, Math.max(current.confidence, next.confidence) * 1.15);
+                
+                // Remove the fused target to avoid listing it separately
+                sorted.splice(j, 1);
+                j--;
+            }
+        }
+        fused.push(current);
+    }
+    return fused;
+};
+
+/**
  * Analyzes content using Gemini. 
  * Supports text, video frames (visual), and audio (auditory) analysis.
  */
@@ -198,17 +234,20 @@ export const analyzeContent = async (
     
     The content includes ${input.images ? 'visual frames ' : ''} ${input.audio ? 'and an audio track' : ''}.
 
-    **ADVANCED ANALYSIS REQUIREMENTS:**
-    1. **Audio Sentiment & Tone Mapping:** 
-       - Distinguish between "aggressive/hateful" speech and "comedic/casual" swearing.
-       - Analyze the intent behind profanity. Note if it is used for humor, characterization, or to demean.
-    2. **Cultural Nuance Engine:**
-       - Look for region-specific sensitivities: religious symbols, smoking/tobacco (CRITICAL for India), or cultural gestures.
-    3. **Thematic Intensity (Vibe Analytics):**
-       - Measure "thematic intensity" such as "dread factor" or "sustained psychological tension."
-    4. **Synthetic Content (Deepfake/SGI) Detection:**
-       - Identify any synthetic content, deepfakes, or de-aged faces. This is critical for compliance with 2026 IT Rules.
-    5. **Financial Impact Prediction:**
+    **ADVANCED ANALYSIS REQUIREMENTS & TEMPORAL SIGNAL FUSION:**
+    1. **Multi-Modal Temporal Event Fusion (Correlated Threat Scoring):** 
+       - Cross-reference visual keyframes with audio tracks. If you detect a weapon or aggressive stance visually AND hear high-intensity, threatening speech or loud sound effects (gunshots, screaming) at overlapping temporal ranges, fuse them into a single high-severity Trigger event.
+       - Synthesize audio transcript cues (what is spoken) with visual contextual indicators (who is speaking and their facial expression) to evaluate genuine intent (e.g. theatrical drama vs. comedic parody).
+    2. **Audio Sentiment, Speech-to-Text & Intensity Mapping:** 
+       - Segment audio stream to identify peaks in vocal volume and emotional aggression.
+       - Map the intent behind profanity. Is it casual expression, comedic joke, demeaning insult, or systemic hate speech? Hateful slurs carry absolute priority flags.
+    3. **Cultural Nuance Engine:**
+       - Look for region-specific compliance criteria: public smoking/tobacco (strictly requires a warning message in India CBFC), religious symbols/insults, national pride insults, or localized gestures.
+    4. **Thematic Intensity (Vibe Analytics):**
+       - Measure "thematic intensity" scores: Dread, Tension, and Melancholy (0-100). Highlight scenes where sustained psychological horror or tension (e.g. silent stalking, monster shadow) is present without active violence.
+    5. **Synthetic Content (Deepfake/SGI) Detection:**
+       - Scan visual inputs for digital face swaps, SGI characters, de-aged actors, or artificial voice replication. Create a log with confidence values.
+    6. **Financial Impact Prediction:**
        - Estimate potential revenue loss/gain based on the predicted rating (e.g., impact of 'A' vs 'UA-16+' in India).
     
     Determine:
@@ -341,11 +380,14 @@ export const analyzeContent = async (
     const parsed = cleanAndParseJSON(resultText);
 
     // Map parsed data to our internal structure with fail-safes
-    const triggers: ContentTrigger[] = (parsed.triggers || []).map((t: any, idx: number) => ({
+    const rawTriggers: ContentTrigger[] = (parsed.triggers || []).map((t: any, idx: number) => ({
       ...t,
       id: `trig-${idx}-${Date.now()}`,
-      timestamp: Math.floor(Math.random() * duration) // Fallback for timestamps if AI doesn't return them precisely
+      timestamp: t.timestamp !== undefined ? Math.floor(t.timestamp) : Math.floor(Math.random() * duration)
     }));
+
+    // Apply Temporal Event Fusion to cross-reference multi-modal indicators (visual + auditory)
+    const fusedTriggers = fuseTemporalEvents(rawTriggers);
 
     const suggestedCuts: SuggestedCut[] = (parsed.suggestedCuts || []).map((c: any, idx: number) => ({
       ...c,
@@ -357,7 +399,7 @@ export const analyzeContent = async (
       score: parsed.score || 0,
       summary: parsed.summary || "Analysis complete.",
       detailedAnalysis: parsed.detailedAnalysis || parsed.summary || "No detailed report available.", 
-      triggers: triggers,
+      triggers: fusedTriggers,
       suggestedCuts: suggestedCuts,
       culturalNotes: parsed.culturalNotes || "No specific cultural notes.",
       thematicIntensity: parsed.thematicIntensity || { dread: 0, tension: 0, melancholy: 0 },

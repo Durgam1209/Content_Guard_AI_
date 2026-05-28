@@ -299,32 +299,32 @@ function App() {
           case 'history': return (
             <div className="p-12 max-w-5xl mx-auto space-y-12 animate-in fade-in duration-700">
                 <div className="border-l-8 border-cinema-gold pl-8">
-                    <h2 className="text-4xl font-black text-film-black uppercase tracking-tighter mb-2">Project Archive</h2>
-                    <p className="text-slate-500 font-serif italic text-lg">Review and manage your previous certification sessions.</p>
+                    <h2 className="text-4xl font-black text-text-primary uppercase tracking-tighter mb-2">Project Archive</h2>
+                    <p className="text-text-muted font-serif italic text-lg">Review and manage your previous certification sessions.</p>
                 </div>
                 
                 {history.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                         {history.map(item => (
-                            <div key={item.id} className="bg-white cinematic-border p-6 cinematic-glow flex gap-6 hover:scale-[1.02] transition-transform cursor-pointer">
-                                <div className="w-32 h-20 bg-slate-100 flex-shrink-0 border border-slate-200 overflow-hidden">
+                            <div key={item.id} className="bg-panel-bg cinematic-border p-6 cinematic-glow flex gap-6 hover:scale-[1.02] transition-transform cursor-pointer">
+                                <div className="w-32 h-20 bg-film-black flex-shrink-0 border border-border-color overflow-hidden">
                                     <img src={item.thumbnail} alt="" className="w-full h-full object-cover" />
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                    <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">{new Date(item.timestamp).toLocaleDateString()}</p>
-                                    <h4 className="text-lg font-black text-film-black truncate uppercase tracking-tight mb-2">{item.title}</h4>
+                                    <p className="text-xs font-black text-text-muted uppercase tracking-widest mb-1">{new Date(item.timestamp).toLocaleDateString()}</p>
+                                    <h4 className="text-lg font-black text-text-primary truncate uppercase tracking-tight mb-2">{item.title}</h4>
                                     <div className="flex items-center gap-3">
                                         <span className={`text-sm font-black ${getRatingColorClass(item.rating)}`}>{item.rating}</span>
-                                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Final Verdict</span>
+                                        <span className="text-[10px] text-text-muted font-bold uppercase tracking-widest">Final Verdict</span>
                                     </div>
                                 </div>
                             </div>
                         ))}
                     </div>
                 ) : (
-                    <div className="bg-white cinematic-border p-20 text-center cinematic-glow">
-                        <Clock className="w-16 h-16 text-slate-200 mx-auto mb-6" />
-                        <p className="text-slate-500 font-serif italic text-xl">Your archive is currently empty.</p>
+                    <div className="bg-panel-bg cinematic-border p-20 text-center cinematic-glow">
+                        <Clock className="w-16 h-16 text-border-color mx-auto mb-6" />
+                        <p className="text-text-muted font-serif italic text-xl">Your archive is currently empty.</p>
                     </div>
                 )}
             </div>

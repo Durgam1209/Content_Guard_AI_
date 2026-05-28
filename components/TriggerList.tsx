@@ -19,10 +19,10 @@ const getIcon = (type: string) => {
 
 const getSeverityStyles = (severity: string) => {
   switch (severity) {
-    case 'High': return 'bg-rose-100 text-rose-700 border-rose-200';
-    case 'Medium': return 'bg-amber-100 text-amber-700 border-amber-200';
-    case 'Low': return 'bg-emerald-100 text-emerald-700 border-emerald-200';
-    default: return 'bg-slate-100 text-slate-700 border-slate-200';
+    case 'High': return 'bg-rose-950/40 text-rose-400 border-rose-500/30';
+    case 'Medium': return 'bg-amber-950/40 text-amber-400 border-cinema-gold/30';
+    case 'Low': return 'bg-emerald-950/40 text-emerald-400 border-emerald-500/30';
+    default: return 'bg-panel-bg text-text-secondary border-border-color';
   }
 };
 
@@ -44,7 +44,7 @@ export const TriggerList: React.FC<TriggerListProps> = ({ triggers, onSelect }) 
 
   if (triggers.length === 0) {
     return (
-        <div className="text-center p-12 text-slate-400 font-serif italic">
+        <div className="text-center p-12 text-text-muted font-serif italic">
             No specific triggers detected in this screening.
         </div>
     );
@@ -52,10 +52,10 @@ export const TriggerList: React.FC<TriggerListProps> = ({ triggers, onSelect }) 
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+      <div className="flex items-center justify-between pb-4 border-b border-border-color">
         <button 
           onClick={toggleAll}
-          className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-film-black transition-colors"
+          className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-text-muted hover:text-text-primary transition-colors cursor-pointer"
         >
           {selectedIds.size === triggers.length ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
           {selectedIds.size === triggers.length ? 'Deselect All' : 'Select All'}
@@ -64,13 +64,13 @@ export const TriggerList: React.FC<TriggerListProps> = ({ triggers, onSelect }) 
         <div className="flex gap-3">
           <button 
             disabled={selectedIds.size === 0}
-            className="flex items-center gap-2 px-3 py-1.5 bg-film-black text-white text-[9px] font-black uppercase tracking-widest disabled:opacity-30 disabled:cursor-not-allowed hover:bg-director-red transition-colors"
+            className="flex items-center gap-2 px-3 py-1.5 bg-cinema-gold text-film-black text-[9px] font-black uppercase tracking-widest disabled:opacity-30 disabled:cursor-not-allowed hover:bg-director-red hover:text-white transition-colors cursor-pointer"
           >
             <Scissors className="w-3 h-3" /> Apply Cuts
           </button>
           <button 
             disabled={selectedIds.size === 0}
-            className="flex items-center gap-2 px-3 py-1.5 border border-slate-200 text-film-black text-[9px] font-black uppercase tracking-widest disabled:opacity-30 disabled:cursor-not-allowed hover:bg-slate-50 transition-colors"
+            className="flex items-center gap-2 px-3 py-1.5 border border-border-color text-text-primary text-[9px] font-black uppercase tracking-widest disabled:opacity-30 disabled:cursor-not-allowed hover:bg-panel-bg transition-colors cursor-pointer"
           >
             <Download className="w-3 h-3" /> Export
           </button>
@@ -82,35 +82,35 @@ export const TriggerList: React.FC<TriggerListProps> = ({ triggers, onSelect }) 
           <div 
               key={trigger.id} 
               onClick={() => onSelect(trigger)}
-              className={`flex items-center justify-between p-4 transition-all duration-300 group relative border ${selectedIds.has(trigger.id) ? 'bg-slate-50 border-cinema-gold' : 'bg-white border-slate-100 hover:border-slate-300'}`}
+              className={`flex items-center justify-between p-4 transition-all duration-300 group relative border cursor-pointer ${selectedIds.has(trigger.id) ? 'bg-panel-bg border-cinema-gold' : 'bg-film-black border-border-color hover:border-cinema-gold'}`}
           >
             <div className="flex items-center gap-4">
               <button 
                 onClick={(e) => toggleSelect(trigger.id, e)}
-                className={`transition-colors ${selectedIds.has(trigger.id) ? 'text-cinema-gold' : 'text-slate-200 group-hover:text-slate-400'}`}
+                className={`transition-colors ${selectedIds.has(trigger.id) ? 'text-cinema-gold' : 'text-border-color group-hover:text-text-muted'}`}
               >
                 {selectedIds.has(trigger.id) ? <CheckSquare className="w-5 h-5" /> : <Square className="w-5 h-5" />}
               </button>
               
-              <div className="p-3 bg-slate-50 border border-slate-100 shadow-sm group-hover:scale-110 transition-transform">
+              <div className="p-3 bg-panel-bg border border-border-color shadow-sm group-hover:scale-110 transition-transform">
                   {getIcon(trigger.type)}
               </div>
               <div>
                 <div className="flex items-center gap-2 mb-1">
-                  <p className="text-xs font-black uppercase tracking-widest text-film-black">{trigger.type}</p>
+                  <p className="text-xs font-black uppercase tracking-widest text-text-primary">{trigger.type}</p>
                   <span className={`text-[8px] font-black px-1.5 py-0.5 border uppercase tracking-widest ${getSeverityStyles(trigger.severity)}`}>
                     {trigger.severity}
                   </span>
                 </div>
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">
+                <p className="text-[10px] text-text-muted font-bold uppercase tracking-tighter">
                   TC: {new Date(trigger.timestamp * 1000).toISOString().substr(14, 5)}
                 </p>
               </div>
             </div>
             
             <div className="text-right">
-               <div className="text-[10px] font-black text-film-black mb-1">{Math.round(trigger.confidence * 100)}%</div>
-               <div className="w-16 h-1 bg-slate-100 overflow-hidden">
+               <div className="text-[10px] font-black text-text-primary mb-1">{Math.round(trigger.confidence * 100)}%</div>
+               <div className="w-16 h-1 bg-border-color overflow-hidden">
                   <div 
                     className={`h-full ${trigger.confidence > 0.8 ? 'bg-emerald-500' : 'bg-cinema-gold'}`}
                     style={{ width: `${trigger.confidence * 100}%` }}

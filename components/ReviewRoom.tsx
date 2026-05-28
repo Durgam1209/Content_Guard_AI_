@@ -44,36 +44,36 @@ export const ReviewRoom: React.FC<ReviewRoomProps> = ({ analysis, onOverride }) 
           </div>
         </div>
 
-        <div className="bg-white cinematic-border p-6 cinematic-glow">
-          <h3 className="text-xs font-black uppercase tracking-[0.2em] text-film-black mb-6 flex items-center gap-2">
+        <div className="bg-panel-bg cinematic-border p-6 cinematic-glow">
+          <h3 className="text-xs font-black uppercase tracking-[0.2em] text-text-primary mb-6 flex items-center gap-2">
             <Users className="w-4 h-4 text-director-red" /> Collaborative Review Board
           </h3>
           <div className="space-y-4">
             {analysis.triggers.map(trigger => (
-              <div key={trigger.id} className="flex items-center justify-between p-4 bg-slate-50 border border-slate-100 hover:border-cinema-gold transition-all">
+              <div key={trigger.id} className="flex items-center justify-between p-4 bg-film-black border border-border-color hover:border-cinema-gold transition-all">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-8 bg-slate-200 border border-slate-300 overflow-hidden">
+                  <div className="w-12 h-8 bg-panel-bg border border-border-color overflow-hidden">
                     {trigger.thumbnail && <img src={trigger.thumbnail} alt="" className="w-full h-full object-cover" />}
                   </div>
                   <div>
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="text-[10px] font-black uppercase tracking-widest text-film-black">{trigger.type}</span>
-                      <span className="text-[8px] font-black px-1.5 py-0.5 bg-amber-100 text-amber-700 border border-amber-200 uppercase tracking-widest">AI Suggestion</span>
+                      <span className="text-[10px] font-black uppercase tracking-widest text-text-primary">{trigger.type}</span>
+                      <span className="text-[8px] font-black px-1.5 py-0.5 bg-amber-950/40 text-amber-400 border border-cinema-gold/30 uppercase tracking-widest">AI Suggestion</span>
                     </div>
-                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">TC: {new Date(trigger.timestamp * 1000).toISOString().substr(14, 5)} • {trigger.description}</p>
+                    <p className="text-[10px] text-text-muted font-bold uppercase tracking-tighter">TC: {new Date(trigger.timestamp * 1000).toISOString().substr(14, 5)} • {trigger.description}</p>
                   </div>
                 </div>
                 <div className="flex gap-2">
                   <button 
                     onClick={() => onOverride(trigger.id, 'Approve')}
-                    className="p-2 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border border-emerald-200 transition-colors"
+                    className="p-2 bg-emerald-950/40 text-emerald-400 hover:bg-emerald-900/40 border border-emerald-500/30 transition-colors cursor-pointer"
                     title="Approve AI Decision"
                   >
                     <CheckCircle className="w-4 h-4" />
                   </button>
                   <button 
                     onClick={() => onOverride(trigger.id, 'Reject')}
-                    className="p-2 bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200 transition-colors"
+                    className="p-2 bg-rose-950/40 text-rose-400 hover:bg-rose-900/40 border border-rose-500/30 transition-colors cursor-pointer"
                     title="Override AI Decision"
                   >
                     <XCircle className="w-4 h-4" />
@@ -86,12 +86,12 @@ export const ReviewRoom: React.FC<ReviewRoomProps> = ({ analysis, onOverride }) 
       </div>
 
       {/* Chat & Collaboration (Sidebar) */}
-      <div className="bg-white cinematic-border flex flex-col h-[calc(100vh-160px)] cinematic-glow overflow-hidden">
-        <div className="p-6 border-b border-slate-100 flex items-center justify-between">
-          <h3 className="text-xs font-black uppercase tracking-[0.2em] text-film-black">Live Discussion</h3>
+      <div className="bg-panel-bg cinematic-border flex flex-col h-[calc(100vh-160px)] cinematic-glow overflow-hidden">
+        <div className="p-6 border-b border-border-color flex items-center justify-between">
+          <h3 className="text-xs font-black uppercase tracking-[0.2em] text-text-primary">Live Discussion</h3>
           <div className="flex -space-x-2">
             {[1,2,3].map(i => (
-              <div key={i} className="w-6 h-6 rounded-full bg-slate-200 border-2 border-white flex items-center justify-center text-[8px] font-black">{String.fromCharCode(64 + i)}</div>
+              <div key={i} className="w-6 h-6 rounded-full bg-film-black border-2 border-panel-bg flex items-center justify-center text-[8px] font-black text-text-primary">{String.fromCharCode(64 + i)}</div>
             ))}
           </div>
         </div>
@@ -100,34 +100,34 @@ export const ReviewRoom: React.FC<ReviewRoomProps> = ({ analysis, onOverride }) 
           {comments.map(comment => (
             <div key={comment.id} className="space-y-1">
               <div className="flex justify-between items-center">
-                <span className="text-[10px] font-black uppercase tracking-widest text-film-black">{comment.user}</span>
-                <span className="text-[8px] text-slate-400 font-bold">{comment.timestamp}</span>
+                <span className="text-[10px] font-black uppercase tracking-widest text-text-primary">{comment.user}</span>
+                <span className="text-[8px] text-text-muted font-bold">{comment.timestamp}</span>
               </div>
-              <p className="text-[11px] text-slate-600 leading-relaxed font-medium bg-slate-50 p-3 border border-slate-100 italic">
+              <p className="text-[11px] text-text-secondary leading-relaxed font-medium bg-film-black p-3 border border-border-color italic">
                 "{comment.text}"
               </p>
             </div>
           ))}
         </div>
 
-        <div className="p-6 border-t border-slate-100">
+        <div className="p-6 border-t border-border-color">
           <div className="flex gap-2">
             <input 
               type="text" 
               placeholder="Add a comment..." 
-              className="flex-1 bg-slate-50 border border-slate-200 px-4 py-2 text-xs focus:outline-none focus:border-cinema-gold"
+              className="flex-1 bg-film-black border border-border-color px-4 py-2 text-xs focus:outline-none focus:border-cinema-gold text-text-primary"
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && addComment()}
             />
             <button 
               onClick={addComment}
-              className="p-2 bg-film-black text-white hover:bg-director-red transition-colors"
+              className="p-2 bg-cinema-gold text-film-black hover:bg-director-red hover:text-white transition-colors cursor-pointer"
             >
               <Send className="w-4 h-4" />
             </button>
           </div>
-          <p className="text-[8px] text-slate-400 mt-2 uppercase tracking-widest font-black text-center">AI learns from human overrides (RLHF)</p>
+          <p className="text-[8px] text-text-muted mt-2 uppercase tracking-widest font-black text-center">AI learns from human overrides (RLHF)</p>
         </div>
       </div>
     </div>

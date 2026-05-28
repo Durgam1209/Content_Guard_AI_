@@ -20,8 +20,8 @@ export const CutsList: React.FC<CutsListProps> = ({ cuts, onSeek }) => {
   };
 
   return (
-    <div className="bg-white border border-slate-200 p-8 shadow-sm">
-       <div className="flex items-center justify-between mb-8 border-b border-slate-100 pb-6">
+    <div className="bg-panel-bg border border-border-color p-8 shadow-sm cinematic-glow">
+       <div className="flex items-center justify-between mb-8 border-b border-border-color pb-6">
          <h3 className="text-xs font-black flex items-center gap-3 text-director-red uppercase tracking-[0.3em]">
             <Scissors className="w-5 h-5" />
             Suggested Director Cuts
@@ -33,28 +33,28 @@ export const CutsList: React.FC<CutsListProps> = ({ cuts, onSeek }) => {
        
        <div className="space-y-4 max-h-[500px] overflow-y-auto pr-4 custom-scrollbar">
          {cuts.map((cut) => (
-           <div key={cut.id} className="bg-slate-50 border-l-4 border-director-red p-5 group hover:bg-white hover:shadow-md transition-all duration-300">
-              <div className="flex items-start gap-4">
-                  <div className="mt-1 p-2 bg-white border border-slate-100 text-director-red group-hover:scale-110 transition-transform">
-                    <AlertOctagon className="w-5 h-5" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                     <div className="flex items-center justify-between mb-2 gap-4">
-                        <span className="text-xs font-black text-film-black uppercase tracking-widest truncate">{cut.type} Violation</span>
-                        <button 
-                          onClick={() => onSeek(cut.startTime)}
-                          className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest bg-film-black hover:bg-director-red text-white px-3 py-1.5 transition-all"
-                        >
-                          <Play className="w-3 h-3 fill-current" />
-                          {formatTime(cut.startTime)} - {formatTime(cut.endTime)}
-                        </button>
-                     </div>
-                     <p className="text-xs text-slate-500 leading-relaxed font-serif italic group-hover:text-film-black transition-colors">
-                       {cut.reason}
-                     </p>
-                  </div>
-              </div>
-           </div>
+            <div key={cut.id} className="bg-film-black border-l-4 border-director-red border-y border-r border-border-color p-5 group hover:bg-panel-bg hover:shadow-md transition-all duration-300">
+               <div className="flex items-start gap-4">
+                   <div className="mt-1 p-2 bg-panel-bg border border-border-color text-director-red group-hover:scale-110 transition-transform">
+                     <AlertOctagon className="w-5 h-5" />
+                   </div>
+                   <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-2 gap-4">
+                         <span className="text-xs font-black text-text-primary uppercase tracking-widest truncate">{cut.type} Violation</span>
+                         <button 
+                           onClick={() => onSeek(cut.startTime)}
+                           className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest bg-panel-bg border border-border-color hover:bg-director-red text-white px-3 py-1.5 transition-all cursor-pointer"
+                         >
+                           <Play className="w-3 h-3 fill-current" />
+                           {formatTime(cut.startTime)} - {formatTime(cut.endTime)}
+                         </button>
+                      </div>
+                      <p className="text-xs text-text-muted leading-relaxed font-serif italic group-hover:text-text-primary transition-colors">
+                        {cut.reason}
+                      </p>
+                   </div>
+               </div>
+            </div>
          ))}
        </div>
     </div>

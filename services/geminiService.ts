@@ -28,6 +28,29 @@ export const getDemoModeConfig = () => {
     return localStorage.getItem('DEMO_MODE') === 'true';
 };
 
+export const getProviderConfig = (): string => {
+    return localStorage.getItem('AI_PROVIDER') || 'gemini';
+};
+
+export const setProviderConfig = (provider: string) => {
+    localStorage.setItem('AI_PROVIDER', provider);
+};
+
+export const getHFConfig = () => {
+    const token = localStorage.getItem('HF_TOKEN') || '';
+    const textModel = localStorage.getItem('HF_TEXT_MODEL') || 'Qwen/Qwen2.5-7B-Instruct';
+    const whisperModel = localStorage.getItem('HF_WHISPER_MODEL') || 'openai/whisper-large-v3';
+    const captionModel = localStorage.getItem('HF_CAPTION_MODEL') || 'Salesforce/blip-image-captioning-large';
+    return { token, textModel, whisperModel, captionModel };
+};
+
+export const setHFConfig = (token: string, textModel: string, whisperModel: string, captionModel: string) => {
+    localStorage.setItem('HF_TOKEN', token);
+    localStorage.setItem('HF_TEXT_MODEL', textModel);
+    localStorage.setItem('HF_WHISPER_MODEL', whisperModel);
+    localStorage.setItem('HF_CAPTION_MODEL', captionModel);
+};
+
 export const getGeminiConfig = () => {
     const apiKey = customApiKey || 
         localStorage.getItem('GEMINI_API_KEY') || 
@@ -489,8 +512,202 @@ const generateMockMovieKnowledge = (title: string): MovieKnowledge => {
   }
 };
 
+const captionImageHF = async (token: string, model: string, base64Image: string): Promise<string> => {
+    const cleanData = base64Image.split(',')[1] || base64Image;
+    const binaryString = atob(cleanData);
+    const len = binaryString.length;
+    const bytes = new Uint8Array(len);
+    for (let i = 0; i < len; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+    }
+    
+    const response = await fetch(`https://api-inference.huggingface.co/models/${model}`, {
+        method: "POST",
+        headers: {
+            "Authorization": `Bearer ${token}`,
+            "Content-Type": "image/jpeg"
+        },
+        body: bytes
+    });
+    
+    if (!response.ok) return "Unable to generate visual description";
+    const result = await response.json();
+    if (Array.isArray(result) && result[0]?.generated_text) {
+        return result[0].generated_text;
+    }
+    return "Visual content analyzed";
+};
+
+const transcribeAudioHF = async (token: string, model: string, base64Audio: string): Promise<string> => {
+    const binaryString = atob(base64Audio);
+    const len = binaryString.length;
+    const bytes = new Uint8Array(len);
+    for (let i = 0; i < len; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+    }
+    
+    const response = await fetch(`https://api-inference.huggingface.co/models/${model}`, {
+        method: "POST",
+        headers: {
+            "Authorization": `Bearer ${token}`,
+            "Content-Type": "audio/wav"
+        },
+        body: bytes
+    });
+    
+    if (!response.ok) return "Silent or unparsed audio track";
+    const result = await response.json();
+    return result.text || "";
+};
+
+const callTextModelHF = async (token: string, model: string, systemPrompt: string, userPrompt: string): Promise<string> => {
+    const response = await fetch(`https://api-inference.huggingface.co/models/${model}`, {
+        method: "POST",
+        headers: {
+            "Authorization": `Bearer ${token}`,
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            inputs: `<|im_start|>system\n${systemPrompt}<|im_end|>\n<|im_start|>user\n${userPrompt}<|im_end|>\n<|im_start|>assistant\n`,
+            parameters: {
+                max_new_tokens: 2500,
+                temperature: 0.1
+            }
+        })
+    });
+    
+    if (!response.ok) {
+        throw new Error(`Text model query failed with status: ${response.status} ${response.statusText}`);
+    }
+    
+    const result = await response.json();
+    let text = "";
+    if (Array.isArray(result) && result[0]?.generated_text) {
+        text = result[0].generated_text;
+    } else if (result.generated_text) {
+        text = result.generated_text;
+    } else if (result[0]?.text) {
+        text = result[0].text;
+    } else {
+        throw new Error("Unexpected Hugging Face text model format");
+    }
+    
+    if (text.includes("<|im_start|>assistant\n")) {
+        text = text.split("<|im_start|>assistant\n")[1];
+    }
+    return text;
+};
+
+const analyzeContentHF = async (
+  input: { text?: string; images?: string[]; audio?: string; duration?: number },
+  region: string,
+  token: string,
+  textModel: string,
+  whisperModel: string,
+  captionModel: string
+): Promise<AnalysisResult> => {
+    const duration = input.duration || 600;
+    const config = REGION_CONFIGS[region] || REGION_CONFIGS['US'];
+    
+    let transcript = "";
+    let captions: string[] = [];
+    const tasks: Promise<any>[] = [];
+    
+    if (input.audio) {
+        tasks.push(
+            transcribeAudioHF(token, whisperModel, input.audio)
+                .then(res => { transcript = res; })
+                .catch(err => console.warn("Whisper transcription error:", err))
+        );
+    }
+    
+    if (input.images && input.images.length > 0) {
+        const imageTasks = input.images.map((img, idx) => 
+            captionImageHF(token, captionModel, img)
+                .then(caption => { captions.push(`[Frame at T+${Math.floor(idx * (duration / input.images!.length))}s]: ${caption}`); })
+                .catch(() => {})
+        );
+        tasks.push(Promise.all(imageTasks));
+    }
+    
+    await Promise.all(tasks);
+    
+    const basePrompt = `
+      You are an expert film certification and content rating specialist.
+      Analyze the provided content to determine the age rating for region ${region}.
+      
+      ${config.instructions}
+    `;
+    
+    const userPrompt = `
+      Determine:
+      1. The likely certification rating based on the region. Valid ratings are: ${config.validRatings.join(', ')}
+      2. A list of specific triggers (Violence, Profanity, Substance, Sexual, Theme, Synthetic).
+      3. A numeric intensity score (0-100).
+      4. A concise summary of the reasoning.
+      5. Detailed Analysis Report explaining the rating.
+      6. Suggested Cuts with start/end timecodes.
+      7. Thematic Intensity Scores (0-100) for Dread, Tension, Melancholy.
+      
+      Input Data:
+      ${input.text ? `Scene Description: "${input.text}"` : ""}
+      ${transcript ? `Audio Speech Transcript: "${transcript}"` : ""}
+      ${captions.length > 0 ? `Visual Frame Descriptions:\n${captions.join('\n')}` : ""}
+      
+      Provide the response strictly as a single JSON object with this format, without markdown wrapping:
+      {
+        "overallRating": "R",
+        "score": 65,
+        "summary": "Brief summary...",
+        "detailedAnalysis": "Formal report paragraph...",
+        "culturalNotes": "Regional standards explanation...",
+        "triggers": [
+           { "type": "Violence", "timestamp": 45, "description": "Trigger description...", "severity": "Medium", "confidence": 0.85, "intent": "Aggressive", "tone": "Dramatic" }
+        ],
+        "suggestedCuts": [
+           { "startTime": 40, "endTime": 50, "reason": "Cut description...", "type": "Violence" }
+        ],
+        "thematicIntensity": { "dread": 40, "tension": 50, "melancholy": 10 },
+        "syntheticContent": []
+      }
+    `;
+    
+    const textResponse = await callTextModelHF(token, textModel, basePrompt, userPrompt);
+    const parsed = cleanAndParseJSON(textResponse);
+    
+    const rawTriggers: ContentTrigger[] = (parsed.triggers || []).map((t: any, idx: number) => ({
+      ...t,
+      id: `trig-${idx}-${Date.now()}`,
+      timestamp: t.timestamp !== undefined ? Math.floor(t.timestamp) : Math.floor(Math.random() * duration)
+    }));
+
+    const fusedTriggers = fuseTemporalEvents(rawTriggers);
+
+    const suggestedCuts: SuggestedCut[] = (parsed.suggestedCuts || []).map((c: any, idx: number) => ({
+      ...c,
+      id: `cut-${idx}-${Date.now()}`
+    }));
+
+    return {
+      overallRating: parsed.overallRating as Rating,
+      score: parsed.score || 0,
+      summary: parsed.summary || "Analysis complete.",
+      detailedAnalysis: parsed.detailedAnalysis || parsed.summary || "No detailed report available.", 
+      triggers: fusedTriggers,
+      suggestedCuts: suggestedCuts,
+      culturalNotes: parsed.culturalNotes || "No specific cultural notes.",
+      thematicIntensity: parsed.thematicIntensity || { dread: 0, tension: 0, melancholy: 0 },
+      syntheticContent: [],
+      financialImpact: {
+         predictedRevenue: parsed.financialImpact?.predictedRevenue || "$12.5M",
+         ratingPenalty: parsed.financialImpact?.ratingPenalty || "Minimal",
+         marketAccess: parsed.financialImpact?.marketAccess || ["Wide Release"]
+      }
+    };
+};
+
 /**
- * Analyzes content using Gemini. 
+ * Analyzes content.
  * Supports text, video frames (visual), and audio (auditory) analysis.
  */
 export const analyzeContent = async (
@@ -498,11 +715,23 @@ export const analyzeContent = async (
   region: string = "US"
 ): Promise<AnalysisResult> => {
   
+  const provider = getProviderConfig();
   const isDemoMode = getDemoModeConfig();
   const { apiKey } = getGeminiConfig();
+  const { token, textModel, whisperModel, captionModel } = getHFConfig();
   
+  // If provider is Hugging Face AND token is present, we bypass Gemini / Demo Mode
+  if (provider === 'huggingface' && token) {
+      try {
+          return await analyzeContentHF(input, region, token, textModel, whisperModel, captionModel);
+      } catch (error: any) {
+          console.error("Hugging Face Pipeline Failed:", error);
+          throw new Error(`Hugging Face Analysis Failed: ${error.message || error}`);
+      }
+  }
+
+  // Fallback to Demo Mode if no Gemini API Key is provided or demo mode is on
   if (isDemoMode || !apiKey) {
-      // Simulate API loading delays for visual realism
       await new Promise(res => setTimeout(res, 2500));
       return generateMockAnalysis(input, region);
   }

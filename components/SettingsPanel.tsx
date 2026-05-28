@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Sliders, Key, ShieldCheck, RefreshCw, Eye, EyeOff, Check, AlertCircle } from 'lucide-react';
-import { getGeminiConfig, setGeminiConfig } from '../services/geminiService';
+import { getGeminiConfig, setGeminiConfig, getDemoModeConfig, setDemoModeConfig } from '../services/geminiService';
 import { GoogleGenAI } from '@google/genai';
 
 export const SettingsPanel = () => {
     const [apiKey, setApiKey] = useState('');
     const [selectedModel, setSelectedModel] = useState('gemini-2.5-flash');
+    const [demoMode, setDemoMode] = useState(false);
     const [showKey, setShowKey] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
@@ -16,6 +17,7 @@ export const SettingsPanel = () => {
         const config = getGeminiConfig();
         setApiKey(config.apiKey);
         setSelectedModel(config.model);
+        setDemoMode(getDemoModeConfig());
     }, []);
 
     const handleSave = () => {
@@ -23,6 +25,7 @@ export const SettingsPanel = () => {
         setSaveStatus('idle');
         try {
             setGeminiConfig(apiKey, selectedModel);
+            setDemoModeConfig(demoMode);
             setSaveStatus('success');
             setTimeout(() => setSaveStatus('idle'), 3000);
         } catch (e) {
@@ -149,6 +152,27 @@ export const SettingsPanel = () => {
                         <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
                         <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
                     </select>
+                </div>
+
+                {/* Sandbox Demo Mode Section */}
+                <div className="space-y-4 pt-6 border-t border-border-color">
+                    <div className="flex items-center justify-between">
+                        <div className="space-y-1 pr-6">
+                            <label className="text-xs font-black uppercase tracking-[0.2em] text-cinema-gold flex items-center gap-2">
+                                <ShieldCheck className="w-4 h-4 text-cinema-gold" /> Demo Sandbox Mode
+                            </label>
+                            <p className="text-xs text-text-secondary font-medium leading-relaxed font-sans">
+                                Bypass the live Gemini API and use local, high-fidelity mock results. Perfect for offline demos, judges' reviews, or when you are out of API quota (No API Key Required).
+                            </p>
+                        </div>
+                        <button 
+                            onClick={() => setDemoMode(!demoMode)}
+                            type="button"
+                            className={`w-16 h-8 flex items-center rounded-full p-1 transition-all duration-300 cursor-pointer flex-shrink-0 ${demoMode ? 'bg-cinema-gold justify-end' : 'bg-studio-bg border border-border-color justify-start'}`}
+                        >
+                            <div className={`w-6 h-6 rounded-full transition-all duration-300 ${demoMode ? 'bg-film-black' : 'bg-text-muted'}`} />
+                        </button>
+                    </div>
                 </div>
 
                 {/* Submit Controls */}

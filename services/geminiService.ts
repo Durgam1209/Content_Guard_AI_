@@ -16,6 +16,18 @@ export const setGeminiConfig = (apiKey: string, model: string) => {
     }
 };
 
+let customDemoMode: boolean | null = null;
+
+export const setDemoModeConfig = (enabled: boolean) => {
+    customDemoMode = enabled;
+    localStorage.setItem('DEMO_MODE', enabled ? 'true' : 'false');
+};
+
+export const getDemoModeConfig = () => {
+    if (customDemoMode !== null) return customDemoMode;
+    return localStorage.getItem('DEMO_MODE') === 'true';
+};
+
 export const getGeminiConfig = () => {
     const apiKey = customApiKey || 
         localStorage.getItem('GEMINI_API_KEY') || 
@@ -246,6 +258,237 @@ export const fuseTemporalEvents = (triggers: ContentTrigger[]): ContentTrigger[]
     return fused;
 };
 
+const generateMockAnalysis = (
+  input: { text?: string; images?: string[]; audio?: string; duration?: number },
+  region: string = "US"
+): AnalysisResult => {
+  const title = input.text || "Uploaded Video Master";
+  
+  // Determine content profile based on name or text
+  let violence = 20;
+  let profanity = 15;
+  let substance = 10;
+  let sexual = 5;
+  let theme = 25;
+  let dread = 15;
+  let tension = 20;
+  let melancholy = 10;
+  
+  const searchText = (input.text || "").toLowerCase() + (title || "").toLowerCase();
+  
+  if (searchText.includes("kannathil") || searchText.includes("war") || searchText.includes("conflict")) {
+    violence = 55;
+    theme = 70;
+    dread = 45;
+    tension = 60;
+    melancholy = 65;
+    profanity = 20;
+  } else if (searchText.includes("horror") || searchText.includes("scary") || searchText.includes("dread")) {
+    dread = 85;
+    tension = 90;
+    melancholy = 40;
+    violence = 40;
+  } else if (searchText.includes("action") || searchText.includes("fight") || searchText.includes("weapon")) {
+    violence = 80;
+    tension = 75;
+    profanity = 45;
+  } else if (searchText.includes("sex") || searchText.includes("intimate") || searchText.includes("naked")) {
+    sexual = 85;
+    theme = 50;
+    profanity = 30;
+  }
+
+  // Calculate composite score
+  const score = Math.min(100, Math.round((violence * 0.4) + (sexual * 0.3) + (profanity * 0.15) + (theme * 0.15)));
+  
+  // Determine rating based on score and region
+  let rating = Rating.G;
+  if (region === 'US') {
+    if (score > 75) rating = Rating.R;
+    else if (score > 45) rating = Rating.PG13;
+    else if (score > 20) rating = Rating.PG;
+    else rating = Rating.G;
+  } else if (region === 'IN') {
+    if (score > 75) rating = Rating.A;
+    else if (score > 60) rating = Rating.UA16;
+    else if (score > 45) rating = Rating.UA13;
+    else if (score > 25) rating = Rating.UA7;
+    else if (score > 15) rating = Rating.UA;
+    else rating = Rating.U;
+  } else if (region === 'UK') {
+    if (score > 75) rating = Rating.BBFC_18;
+    else if (score > 55) rating = Rating.BBFC_15;
+    else if (score > 35) rating = Rating.BBFC_12A;
+    else if (score > 15) rating = Rating.PG;
+    else rating = Rating.U;
+  } else if (region === 'DE') {
+    if (score > 75) rating = Rating.FSK_18;
+    else if (score > 55) rating = Rating.FSK_16;
+    else if (score > 35) rating = Rating.FSK_12;
+    else if (score > 15) rating = Rating.FSK_6;
+    else rating = Rating.FSK_0;
+  } else {
+    // JP
+    if (score > 75) rating = Rating.R;
+    else if (score > 45) rating = Rating.PG13;
+    else if (score > 20) rating = Rating.PG;
+    else rating = Rating.G;
+  }
+
+  // Triggers list
+  const triggers: ContentTrigger[] = [];
+  const suggestedCuts: SuggestedCut[] = [];
+  
+  if (violence > 40) {
+    triggers.push({
+      id: `trig-v-${Date.now()}`,
+      type: 'Violence',
+      timestamp: 45,
+      description: "Characters engaging in intense physical conflict with impact shots.",
+      severity: violence > 70 ? 'High' : 'Medium',
+      confidence: 0.92,
+      intent: 'Aggressive',
+      tone: 'Dramatic'
+    });
+    
+    if (violence > 60) {
+      suggestedCuts.push({
+        id: `cut-v-${Date.now()}`,
+        startTime: 40,
+        endTime: 50,
+        reason: "Reduce explicit violence and weapons impact to secure a lower age rating.",
+        type: 'Violence'
+      });
+    }
+  }
+
+  if (profanity > 30) {
+    triggers.push({
+      id: `trig-p-${Date.now()}`,
+      type: 'Profanity',
+      timestamp: 84,
+      description: "Aggressive use of strong language in dialog sequence.",
+      severity: profanity > 60 ? 'High' : 'Medium',
+      confidence: 0.95,
+      intent: 'Aggressive',
+      tone: 'Tense'
+    });
+    
+    if (profanity > 50) {
+      suggestedCuts.push({
+        id: `cut-p-${Date.now()}`,
+        startTime: 82,
+        endTime: 86,
+        reason: "Mute or cut strong verbal slurs and explicit language.",
+        type: 'Profanity'
+      });
+    }
+  }
+
+  if (sexual > 40) {
+    triggers.push({
+      id: `trig-s-${Date.now()}`,
+      type: 'Sexual',
+      timestamp: 120,
+      description: "Intimate scene depicting partial nudity and suggestive behavior.",
+      severity: sexual > 70 ? 'High' : 'Medium',
+      confidence: 0.89,
+      intent: 'Casual',
+      tone: 'Romantic'
+    });
+    
+    if (sexual > 60) {
+      suggestedCuts.push({
+        id: `cut-s-${Date.now()}`,
+        startTime: 115,
+        endTime: 125,
+        reason: "Trim explicit physical intimacy and visible exposure.",
+        type: 'Sexual'
+      });
+    }
+  }
+
+  return {
+    overallRating: rating,
+    score: score,
+    summary: `Content certified as ${rating} in region ${region}. Primary triggers are ${triggers.map(t => t.type.toLowerCase()).join(', ') || 'none'}.`,
+    detailedAnalysis: `### Regional Certification Report\n\n**Visual Style:** The director uses highly contrasting lighting and tight framing to capture tension. In moments of conflict, the camera utilizes hand-held movements to increase the sense of chaos and realism.\n\n**Audio Landscape:** The sound design features a swelling orchestral score punctuated by localized high-impact sound design (screams, glass breaks). Vocal tracks indicate elevated emotional arousal and aggression during key arguments.\n\n**Justification:** The rating tier of **${rating}** is warranted primarily because of the ${triggers.length > 0 ? triggers.map(t => `${t.severity.toLowerCase()} ${t.type.toLowerCase()}`).join(' and ') : 'absence of significant themes or triggers'}. Lowering the rating is possible by complying with the suggested compliance cuts.`,
+    triggers: triggers,
+    suggestedCuts: suggestedCuts,
+    culturalNotes: `In ${region}, content standards restrict ${violence > 50 ? 'violence' : sexual > 50 ? 'sexual behavior' : 'strong language'} strictly. Indian CBFC standards require a statutory anti-tobacco scroll if smoking is depicted, whereas US standards focus heavily on explicit intimacy.`,
+    thematicIntensity: { dread, tension, melancholy },
+    syntheticContent: [],
+    financialImpact: {
+      predictedRevenue: "$14.5M - $18.2M",
+      ratingPenalty: rating === Rating.R || rating === Rating.A ? "25% Teen Access Deficit" : "Minimal Penalty",
+      marketAccess: region === 'IN' ? ["CBFC Certified UA", "Multiplex Release"] : ["Wide Release", "Streaming Compliant"]
+    }
+  };
+};
+
+const generateMockMovieKnowledge = (title: string): MovieKnowledge => {
+  const norm = title.toLowerCase();
+  
+  if (norm.includes("batman")) {
+    return {
+      title: "The Batman",
+      type: "Movie",
+      year: "2022",
+      certificates: [
+        { region: "US", standard: "MPAA", rating: "PG-13", reason: "Strong violent content, drug content, and language." },
+        { region: "IN", standard: "CBFC", rating: "UA 16+", reason: "Action violence and dark themes." },
+        { region: "UK", standard: "BBFC", rating: "15", reason: "Strong threat and violence." },
+        { region: "DE", standard: "FSK", rating: "FSK 12", reason: "Violence and scary scenes." }
+      ],
+      analysis: "The movie was rated 15 in the UK due to BBFC's strict thresholds on sustained psychological threat and dark tone, whereas US MPAA granted a PG-13 because the violence lacked explicit gore.",
+      contentDNA: { violence: 65, sex: 15, profanity: 35 }
+    };
+  } else if (norm.includes("oppenheimer")) {
+    return {
+      title: "Oppenheimer",
+      type: "Movie",
+      year: "2023",
+      certificates: [
+        { region: "US", standard: "MPAA", rating: "R", reason: "Some sexuality, nudity, and language." },
+        { region: "IN", standard: "CBFC", rating: "UA 16+", reason: "Nudity censored / blurred, mature themes." },
+        { region: "UK", standard: "BBFC", rating: "15", reason: "Infrequent nudity and strong language." },
+        { region: "DE", standard: "FSK", rating: "FSK 12", reason: "Thematic density and language." }
+      ],
+      analysis: "Rated R in the US due to explicit depiction of sexual intimacy and nudity. The Indian release received a UA 16+ after digital modifications to cover nudity in accordance with regional compliance laws.",
+      contentDNA: { violence: 25, sex: 55, profanity: 45 }
+    };
+  } else if (norm.includes("dune")) {
+    return {
+      title: "Dune: Part Two",
+      type: "Movie",
+      year: "2024",
+      certificates: [
+        { region: "US", standard: "MPAA", rating: "PG-13", reason: "Sequences of strong violence and brief strong language." },
+        { region: "IN", standard: "CBFC", rating: "UA 13+", reason: "Fantasy violence and epic battles." },
+        { region: "UK", standard: "BBFC", rating: "12A", reason: "Moderate violence and threat." },
+        { region: "DE", standard: "FSK", rating: "FSK 12", reason: "Action battles." }
+      ],
+      analysis: "Rated consistently PG-13 / 12A across global markets as the violence, although frequent, is stylized science fiction without graphic realism or sadism.",
+      contentDNA: { violence: 55, sex: 10, profanity: 20 }
+    };
+  } else {
+    // Deadpool & Wolverine
+    return {
+      title: "Deadpool & Wolverine",
+      type: "Movie",
+      year: "2024",
+      certificates: [
+        { region: "US", standard: "MPAA", rating: "R", reason: "Strong bloody violence and language throughout, gore, and sexual references." },
+        { region: "IN", standard: "CBFC", rating: "A", reason: "Graphic cartoonish violence, crude profanity, and sexual innuendo." },
+        { region: "UK", standard: "BBFC", rating: "15", reason: "Strong bloody violence and sexual references." },
+        { region: "DE", standard: "FSK", rating: "FSK 16", reason: "Bloody action scenes." }
+      ],
+      analysis: "Highly restricted globally due to highly creative, explicit, and self-referential gore/violence combined with near-constant sexual references and crude profanity.",
+      contentDNA: { violence: 85, sex: 45, profanity: 80 }
+    };
+  }
+};
+
 /**
  * Analyzes content using Gemini. 
  * Supports text, video frames (visual), and audio (auditory) analysis.
@@ -255,6 +498,15 @@ export const analyzeContent = async (
   region: string = "US"
 ): Promise<AnalysisResult> => {
   
+  const isDemoMode = getDemoModeConfig();
+  const { apiKey } = getGeminiConfig();
+  
+  if (isDemoMode || !apiKey) {
+      // Simulate API loading delays for visual realism
+      await new Promise(res => setTimeout(res, 2500));
+      return generateMockAnalysis(input, region);
+  }
+
   const isVideo = (input.images && input.images.length > 0) || !!input.audio;
   const duration = input.duration || 600; // Default 10 mins if unknown
   
@@ -483,6 +735,14 @@ export const analyzeContent = async (
  * Acts as a Machine Learning Model Database by querying the LLM's knowledge base.
  */
 export const getMovieCertificates = async (title: string): Promise<MovieKnowledge | null> => {
+  const isDemoMode = getDemoModeConfig();
+  const { apiKey } = getGeminiConfig();
+  
+  if (isDemoMode || !apiKey) {
+      await new Promise(res => setTimeout(res, 1200));
+      return generateMockMovieKnowledge(title);
+  }
+
   const prompt = `
     Act as a global media certification database for both Movies and TV Series. 
     Retrieve the official historical certification/rating data for the title "${title}".

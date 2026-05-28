@@ -17,7 +17,11 @@ import {
   Search,
   Users,
   TrendingUp,
-  Sliders
+  Sliders,
+  Play,
+  Pause,
+  Menu,
+  AlertCircle
 } from 'lucide-react';
 import { Timeline } from './components/Timeline';
 import { TriggerList } from './components/TriggerList';
@@ -49,35 +53,35 @@ const MOCK_TIMELINE_DATA: TimelinePoint[] = [
 
 // Cinematic Loader Component
 const CinematicLoader = ({ step, progress }: { step: string; progress?: number }) => (
-  <div className="absolute inset-0 bg-white/95 backdrop-blur-md flex flex-col items-center justify-center z-50 p-12 text-center">
+  <div className="absolute inset-0 bg-panel-bg/95 backdrop-blur-md flex flex-col items-center justify-center z-50 p-12 text-center text-text-primary">
     <div className="relative mb-12">
-      <Film className="w-24 h-24 text-film-black film-reel-spin" />
+      <Film className="w-24 h-24 text-cinema-gold film-reel-spin" />
       <div className="absolute -top-4 -right-4">
         <Clapperboard className="w-12 h-12 text-director-red clapper-snap" />
       </div>
     </div>
     
     <div className="space-y-6 w-full max-w-md">
-      <h3 className="text-2xl font-serif font-black uppercase tracking-[0.2em] text-film-black">
+      <h3 className="text-2xl font-serif font-black uppercase tracking-[0.2em] text-text-primary">
         {step}
       </h3>
       
       {progress !== undefined && (
         <div className="space-y-3">
-          <div className="h-1 bg-slate-100 w-full overflow-hidden relative">
+          <div className="h-1 bg-studio-bg w-full overflow-hidden relative border border-border-color">
             <div 
-              className="h-full bg-director-red transition-all duration-500 ease-out shadow-[0_0_15px_rgba(178,34,34,0.4)]"
+              className="h-full bg-cinema-gold transition-all duration-500 ease-out shadow-[0_0_15px_rgba(212,175,55,0.4)]"
               style={{ width: `${progress}%` }}
             />
           </div>
-          <div className="flex justify-between text-[10px] text-slate-400 font-bold uppercase tracking-widest">
+          <div className="flex justify-between text-[10px] text-text-muted font-bold uppercase tracking-widest">
             <span>Roll {Math.floor(progress / 10) + 1}</span>
             <span>{progress}% Processed</span>
           </div>
         </div>
       )}
       
-      <p className="text-xs text-slate-400 font-medium italic">
+      <p className="text-xs text-text-muted font-medium italic">
         "Great things take time. We're perfecting your certification."
       </p>
     </div>
@@ -88,35 +92,35 @@ const CinematicLoader = ({ step, progress }: { step: string; progress?: number }
 const getRatingColorClass = (rating: Rating) => {
   switch (rating) {
     // US
-    case Rating.NC17: return 'text-rose-700';      // Extreme
-    case Rating.R: return 'text-rose-600';         // Restricted
-    case Rating.PG13: return 'text-amber-600';     // Caution
-    case Rating.PG: return 'text-sky-600';         // Guidance
-    case Rating.G: return 'text-emerald-600';      // General
+    case Rating.NC17: return 'text-rose-500 font-extrabold';      // Extreme
+    case Rating.R: return 'text-rose-400 font-black';             // Restricted
+    case Rating.PG13: return 'text-amber-400 font-bold';          // Caution
+    case Rating.PG: return 'text-sky-400 font-medium';            // Guidance
+    case Rating.G: return 'text-emerald-400 font-black';          // General
     
     // IN (CBFC)
-    case Rating.A: return 'text-rose-700 font-extrabold';      // Adults Only (Strict)
-    case Rating.UA16: return 'text-orange-600 font-bold';      // 16+ (High Caution)
-    case Rating.UA13: return 'text-amber-600 font-bold';       // 13+ (Moderate Caution)
-    case Rating.UA7: return 'text-yellow-600 font-bold';       // 7+ (Mild Caution)
-    case Rating.UA: return 'text-yellow-600';                  // Legacy UA
-    case Rating.U: return 'text-emerald-600 font-bold';        // Unrestricted
-    case Rating.S: return 'text-violet-600';                   // Specialized
+    case Rating.A: return 'text-rose-500 font-extrabold';         // Adults Only
+    case Rating.UA16: return 'text-orange-400 font-bold';         // UA 16+
+    case Rating.UA13: return 'text-amber-400 font-bold';          // UA 13+
+    case Rating.UA7: return 'text-yellow-400 font-bold';          // UA 7+
+    case Rating.UA: return 'text-yellow-400';                     // UA
+    case Rating.U: return 'text-emerald-400 font-bold';           // Unrestricted
+    case Rating.S: return 'text-violet-400 font-medium';          // Specialized
     
     // BBFC (UK)
-    case Rating.BBFC_18: return 'text-rose-700 font-black';
-    case Rating.BBFC_15: return 'text-rose-500 font-bold';
-    case Rating.BBFC_12A: return 'text-amber-600 font-bold';
-    case Rating.BBFC_R18: return 'text-blue-900 bg-slate-100 px-1 font-bold'; // Strict Restricted
+    case Rating.BBFC_18: return 'text-rose-500 font-black';
+    case Rating.BBFC_15: return 'text-rose-400 font-bold';
+    case Rating.BBFC_12A: return 'text-amber-400 font-bold';
+    case Rating.BBFC_R18: return 'text-red-400 font-bold bg-red-950/20 border border-red-500/20 px-2'; 
 
     // FSK (Germany)
-    case Rating.FSK_18: return 'text-rose-700 font-black'; // Red label
-    case Rating.FSK_16: return 'text-blue-600 font-bold';  // Blue label
-    case Rating.FSK_12: return 'text-green-600 font-bold'; // Green label
-    case Rating.FSK_6: return 'text-yellow-600 font-bold'; // Yellow label
-    case Rating.FSK_0: return 'text-slate-400 font-bold';  // White label
+    case Rating.FSK_18: return 'text-rose-500 font-black'; 
+    case Rating.FSK_16: return 'text-blue-400 font-bold';  
+    case Rating.FSK_12: return 'text-emerald-400 font-bold'; 
+    case Rating.FSK_6: return 'text-yellow-400 font-bold'; 
+    case Rating.FSK_0: return 'text-text-muted';  
 
-    default: return 'text-slate-400';
+    default: return 'text-text-muted';
   }
 };
 
@@ -125,6 +129,9 @@ function App() {
   const [analyzing, setAnalyzing] = useState(false);
   const [analyzeStep, setAnalyzeStep] = useState<string>('');
   const [analysisProgress, setAnalysisProgress] = useState(0); 
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
   
   // History State
   const [history, setHistory] = useState<HistoryItem[]>([]);
@@ -153,6 +160,18 @@ function App() {
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [timelineData, setTimelineData] = useState<TimelinePoint[]>(MOCK_TIMELINE_DATA);
   const [showReport, setShowReport] = useState(false);
+
+  const togglePlay = () => {
+    if (videoRef.current) {
+      if (isPlaying) {
+        videoRef.current.pause();
+        setIsPlaying(false);
+      } else {
+        videoRef.current.play().catch(e => console.log(e));
+        setIsPlaying(true);
+      }
+    }
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -199,6 +218,8 @@ function App() {
     setAnalysis(null);
     if (previewUrl && previewUrl !== videoUrl) URL.revokeObjectURL(previewUrl);
     setPreviewUrl(null);
+    setIsPlaying(false);
+    setAnalysisError(null);
   };
 
   const handleSeek = (time: number) => {
@@ -210,6 +231,7 @@ function App() {
         }
         // Ensure video is paused so user can see the frame
         videoRef.current.pause();
+        setIsPlaying(false);
     }
   };
 
@@ -217,6 +239,8 @@ function App() {
     setAnalyzing(true);
     setAnalysisProgress(0);
     setAnalysis(null);
+    setAnalysisError(null);
+    setIsPlaying(false);
     
     let result;
     
@@ -268,6 +292,15 @@ function App() {
         setTimelineData(newTimeline);
         setAnalysis(result);
 
+        // Auto-play the video
+        setTimeout(() => {
+            if (videoRef.current) {
+                videoRef.current.play()
+                    .then(() => setIsPlaying(true))
+                    .catch(err => console.log("Autoplay prevented:", err));
+            }
+        }, 150);
+
         // Add to History
         if (inputMode === 'video' && videoFile) {
             const newHistoryItem: HistoryItem = {
@@ -279,9 +312,9 @@ function App() {
             };
             setHistory(prev => [newHistoryItem, ...prev].slice(0, 10));
         }
-    } catch (e) {
+    } catch (e: any) {
         console.error(e);
-        setAnalyzeStep('Analysis failed. Please try again.');
+        setAnalysisError(e.message || 'Analysis failed. Please check your API key and connection.');
     } finally {
         setAnalyzing(false);
         setAnalyzeStep('');
@@ -343,9 +376,12 @@ function App() {
                                         <video 
                                             ref={videoRef}
                                             src={videoUrl}
-                                            className="w-full h-full object-contain"
+                                            className="w-full h-full object-contain cursor-pointer"
                                             controls={false}
                                             playsInline
+                                            onClick={togglePlay}
+                                            onPlay={() => setIsPlaying(true)}
+                                            onPause={() => setIsPlaying(false)}
                                             onTimeUpdate={(e) => {
                                                 const v = e.currentTarget;
                                                 const progress = (v.currentTime / v.duration) * 100;
@@ -353,6 +389,16 @@ function App() {
                                                 if (progressBar) progressBar.style.width = `${progress}%`;
                                             }}
                                         />
+
+                                        {/* Center Play/Pause Overlay */}
+                                        <div 
+                                            onClick={togglePlay}
+                                            className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer z-10"
+                                        >
+                                            <div className="p-5 bg-panel-bg/95 border border-border-color rounded-full text-cinema-gold shadow-2xl hover:scale-110 transition-transform">
+                                                {isPlaying ? <Pause className="w-8 h-8" /> : <Play className="w-8 h-8 fill-current" />}
+                                            </div>
+                                        </div>
                                         
                                         {/* Custom Seek Bar with Markers */}
                                         <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-white/20 group-hover:h-3 transition-all cursor-pointer z-20"
@@ -421,10 +467,6 @@ function App() {
                                         {isSanitized ? 'Sanitized' : 'Sanitize for Region'}
                                     </button>
                                 </div>
-
-                                {analyzing && (
-                                    <CinematicLoader step={analyzeStep} progress={analysisProgress} />
-                                )}
                             </>
                         ) : isUploading ? (
                             <div className="absolute inset-0 flex flex-col items-center justify-center bg-panel-bg border border-border-color">
@@ -701,6 +743,56 @@ function App() {
           />
       )}
 
+      {/* Mobile Drawer Backdrop */}
+      {isMobileMenuOpen && (
+        <div 
+          onClick={() => setIsMobileMenuOpen(false)}
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden"
+        />
+      )}
+
+      {/* Mobile Sidebar */}
+      <aside className={`fixed top-0 bottom-0 left-0 w-72 bg-panel-bg border-r border-border-color flex flex-col z-50 transition-transform duration-300 md:hidden ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        <div className="p-8 border-b border-border-color flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="bg-studio-bg p-2.5 border border-border-color shadow-lg">
+              <Shield className="w-6 h-6 text-cinema-gold" />
+            </div>
+            <span className="font-serif font-black text-xl tracking-tighter text-text-primary uppercase">ContentGuard</span>
+          </div>
+          <button 
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="p-2 hover:bg-border-color text-text-muted hover:text-text-primary transition-colors cursor-pointer"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        
+        <nav className="flex-1 p-6 space-y-2">
+          {[
+            { id: 'dashboard', name: 'Screening', icon: <Activity className="w-5 h-5" /> },
+            { id: 'database', name: 'Intelligence', icon: <Globe className="w-5 h-5" /> },
+            { id: 'compliance', name: 'Compliance', icon: <Search className="w-5 h-5" /> },
+            { id: 'review', name: 'Review Room', icon: <Users className="w-5 h-5" /> },
+            { id: 'benchmark', name: 'Benchmark', icon: <TrendingUp className="w-5 h-5" /> },
+            { id: 'history', name: 'History', icon: <Clock className="w-5 h-5" /> },
+            { id: 'settings', name: 'Settings', icon: <Sliders className="w-5 h-5" /> }
+          ].map(item => (
+            <button 
+              key={item.id}
+              onClick={() => {
+                setActiveTab(item.id as ViewState);
+                setIsMobileMenuOpen(false);
+              }}
+              className={`w-full flex items-center gap-4 px-5 py-3.5 text-xs font-black uppercase tracking-[0.2em] transition-all duration-300 ${activeTab === item.id ? 'bg-cinema-gold text-film-black shadow-lg translate-x-2' : 'text-text-secondary hover:bg-studio-bg hover:text-white'}`}
+            >
+              {item.icon}
+              {item.name}
+            </button>
+          ))}
+        </nav>
+      </aside>
+
       {/* Sidebar */}
       <aside className="w-72 bg-panel-bg border-r border-border-color flex flex-col hidden md:flex z-20">
         <div className="p-8 border-b border-border-color flex items-center gap-4">
@@ -804,16 +896,28 @@ function App() {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto z-10 bg-studio-bg">
-        <header className="h-20 border-b border-border-color bg-panel-bg/90 backdrop-blur-xl sticky top-0 z-30 flex items-center justify-between px-10">
-           <h1 className="font-serif font-black text-2xl text-text-primary uppercase tracking-tight">
-             {activeTab === 'dashboard' ? 'Screening Room' : 
-              activeTab === 'database' ? 'Global Intelligence' : 
-              activeTab === 'compliance' ? 'Compliance Status' : 
-              activeTab === 'review' ? 'Review Board' : 
-              activeTab === 'benchmark' ? 'Benchmark Target' : 
-              activeTab === 'history' ? 'Project Archive' : 'Engine Settings'}
-           </h1>
+      <main className="flex-1 overflow-y-auto z-10 bg-studio-bg relative">
+        {analyzing && (
+            <CinematicLoader step={analyzeStep} progress={analysisProgress} />
+        )}
+
+        <header className="h-20 border-b border-border-color bg-panel-bg/90 backdrop-blur-xl sticky top-0 z-30 flex items-center justify-between px-6 md:px-10">
+           <div className="flex items-center">
+             <button 
+               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+               className="md:hidden mr-4 p-2 border border-border-color bg-studio-bg text-text-primary hover:text-cinema-gold cursor-pointer"
+             >
+               <Menu className="w-5 h-5" />
+             </button>
+             <h1 className="font-serif font-black text-xl md:text-2xl text-text-primary uppercase tracking-tight">
+               {activeTab === 'dashboard' ? 'Screening Room' : 
+                activeTab === 'database' ? 'Global Intelligence' : 
+                activeTab === 'compliance' ? 'Compliance Status' : 
+                activeTab === 'review' ? 'Review Board' : 
+                activeTab === 'benchmark' ? 'Benchmark Target' : 
+                activeTab === 'history' ? 'Project Archive' : 'Engine Settings'}
+             </h1>
+           </div>
            <div className="flex items-center gap-6">
              {activeTab === 'dashboard' && (
                   <select 
@@ -833,6 +937,27 @@ function App() {
              </div>
            </div>
         </header>
+
+        {/* Global Error Banner */}
+        {analysisError && (
+            <div className="max-w-6xl mx-auto mt-8 px-8">
+                <div className="bg-rose-950/20 border border-director-red text-text-primary p-6 flex flex-col md:flex-row items-center justify-between gap-4">
+                    <div className="flex items-center gap-4">
+                        <AlertCircle className="w-8 h-8 text-director-red flex-shrink-0" />
+                        <div>
+                            <h4 className="font-black uppercase tracking-widest text-xs">Analysis Failed</h4>
+                            <p className="text-xs text-text-secondary mt-1">{analysisError}</p>
+                        </div>
+                    </div>
+                    <button 
+                        onClick={() => setActiveTab('settings')}
+                        className="px-4 py-2 bg-director-red text-white text-[10px] font-black uppercase tracking-widest hover:bg-rose-700 transition-colors cursor-pointer"
+                    >
+                        Configure Settings
+                    </button>
+                </div>
+            </div>
+        )}
 
         {renderContent()}
       </main>

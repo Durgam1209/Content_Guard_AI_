@@ -9,17 +9,6 @@ interface CertificationReportProps {
   region: string;
 }
 
-import React from 'react';
-import { AnalysisResult, Rating } from '../types';
-import { X, Printer, Shield, FileCheck, AlertTriangle } from 'lucide-react';
-
-interface CertificationReportProps {
-  data: AnalysisResult;
-  onClose: () => void;
-  fileName: string;
-  region: string;
-}
-
 export const CertificationReport: React.FC<CertificationReportProps> = ({ data, onClose, fileName, region }) => {
   const handlePrint = () => {
     window.print();

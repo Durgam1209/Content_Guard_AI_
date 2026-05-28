@@ -51,7 +51,7 @@ export const extractSmartFrames = async (
   
   // Extraction Canvas (High Res)
   const eCanvas = document.createElement('canvas');
-  const maxDim = 512;
+  const maxDim = 384;
   const aspectRatio = (video.videoWidth || 16) / (video.videoHeight || 9);
   if (aspectRatio > 1) {
       eCanvas.width = maxDim;
@@ -75,7 +75,7 @@ export const extractSmartFrames = async (
   
   const candidates: FrameCandidate[] = [];
   let prevData: Uint8ClampedArray | null = null;
-  const MAX_CANDIDATES = 20;
+  const MAX_CANDIDATES = 12;
 
   // 2. Single Pass: Scan & Conditional Extraction
   const totalSteps = Math.ceil(duration / interval);
@@ -140,7 +140,7 @@ export const extractSmartFrames = async (
         
         if (candidates.length < MAX_CANDIDATES || score > worstCandidateScore) {
             eCtx.drawImage(video, 0, 0, eCanvas.width, eCanvas.height);
-            const dataUrl = eCanvas.toDataURL('image/jpeg', 0.8);
+            const dataUrl = eCanvas.toDataURL('image/jpeg', 0.5);
             
             candidates.push({ time: t, score, dataUrl });
             

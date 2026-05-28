@@ -84,11 +84,33 @@ async function withRetry<T>(
     } catch (error: any) {
         if (retries <= 0) throw error;
         
-        // Check for specific retryable errors (503 Service Unavailable, 429 Too Many Requests)
-        const isRetryable = error.status === 503 || error.status === 429 || error.message?.includes('fetch');
+        const status = error.status;
+        const code = error.code || error.statusCode;
+        const msg = error.message || '';
+        
+        // Catch 503 (Service Unavailable / UNAVAILABLE), 504 (Gateway Timeout / DEADLINE_EXCEEDED), 
+        // 429 (Too Many Requests / RESOURCE_EXHAUSTED), and fetch failures
+        const isRetryable = 
+            status === 503 || 
+            code === 503 || 
+            status === 'UNAVAILABLE' ||
+            status === 504 ||
+            code === 504 ||
+            status === 'DEADLINE_EXCEEDED' ||
+            status === 429 || 
+            code === 429 || 
+            status === 'RESOURCE_EXHAUSTED' ||
+            msg.includes('fetch') ||
+            msg.includes('503') ||
+            msg.includes('504') ||
+            msg.includes('429') ||
+            msg.includes('Service Unavailable') ||
+            msg.includes('Gateway Timeout') ||
+            msg.includes('Too Many Requests');
+
         if (!isRetryable && retries < 2) throw error; // Don't retry logic errors indefinitely
 
-        console.warn(`API Error. Retrying in ${delay}ms... (${retries} attempts left)`, error.message);
+        console.warn(`API Error. Retrying in ${delay}ms... (${retries} attempts left)`, msg);
         await new Promise(res => setTimeout(res, delay));
         return withRetry(operation, retries - 1, delay * 2);
     }

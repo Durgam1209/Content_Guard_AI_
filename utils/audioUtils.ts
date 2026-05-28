@@ -75,10 +75,10 @@ export async function extractAudioFromVideo(file: File): Promise<string | null> 
     const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
     const originalBuffer = await audioContext.decodeAudioData(arrayBuffer);
 
-    // 3. Optimization: Downsample to 16kHz for faster processing and smaller payload
-    // 16kHz is sufficient for speech and trigger detection
-    const targetSampleRate = 16000;
-    const maxDuration = 180; // Limit to 3 minutes for optimized analysis
+    // 3. Optimization: Downsample to 8kHz for faster processing and smaller payload
+    // 8kHz is sufficient for speech and trigger detection
+    const targetSampleRate = 8000;
+    const maxDuration = 120; // Limit to 2 minutes for optimized analysis
     const durationToUse = Math.min(originalBuffer.duration, maxDuration);
     
     const offlineCtx = new OfflineAudioContext(

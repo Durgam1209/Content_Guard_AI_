@@ -32,10 +32,11 @@ import { BenchmarkView } from './components/BenchmarkView';
 import { CutsList } from './components/CutsList';
 import { CertificationReport } from './components/CertificationReport';
 import { SettingsPanel } from './components/SettingsPanel';
-import { analyzeContent } from './services/geminiService';
+import { analyzeContent, getMovieCertificates } from './services/geminiService';
 import { extractAudioFromVideo } from './utils/audioUtils';
 import { extractSmartFrames } from './utils/videoProcessing';
-import { AnalysisResult, TimelinePoint, Rating, ViewState, HistoryItem } from './types';
+import { AnalysisResult, TimelinePoint, Rating, ViewState, HistoryItem, ContentTrigger, MovieKnowledge } from './types';
+
 
 const MOCK_TIMELINE_DATA: TimelinePoint[] = [
   { time: 0, intensity: 20 },

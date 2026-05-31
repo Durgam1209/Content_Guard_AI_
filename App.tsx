@@ -443,13 +443,12 @@ function App() {
             <ReviewRoom 
               analysis={derivedAnalysis} 
               onOverride={(id, decision) => {
-                if (decision === 'Reject') {
-                  setSanitizedTriggerIds(prev => {
-                    const next = new Set(prev);
-                    next.add(id);
-                    return next;
-                  });
-                }
+                setSanitizedTriggerIds(prev => {
+                  const next = new Set(prev);
+                  if (decision === 'Reject') next.add(id);
+                  if (decision === 'Approve') next.delete(id);
+                  return next;
+                });
               }} 
             />
           ) : (

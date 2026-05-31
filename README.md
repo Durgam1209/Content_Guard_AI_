@@ -60,6 +60,19 @@ This feature allows users to "check their homework" against previously rated fil
 ContentGuard AI 2
 We all know the age ratings on movies: PG, PG-13, R. But have you ever stopped to think about how those decisions are actually made?
 
+---
+## Quick start (local)
+1. Install deps: `npm install`
+2. Start dev server: `npm run dev`
+3. In the app, open **Engine Settings** and configure your provider key (Gemini/OpenRouter/HuggingFace) via the UI.
+4. Click **Video Upload** and run analysis.
+
+### `.env` support
+A repo-root `.env` file is included for Vite/local convenience. This project’s runtime config is primarily stored via the Settings panel and `localStorage`.
+
+### Recent fix
+The Gemini/OpenRouter service (`services/geminiService.ts`) was updated to be TypeScript-valid and to normalize timestamps used by the Timeline/seek UI.
+
 Today, classifying a movie is a slow, manual process. Humans (often a classification board like the MPAA in the US or the CBFC in India) have to sit and watch every single minute of a movie. They take careful notes on every swear word, every fistfight, and every intimate scene. Then, they argue about the context before finally deciding on an age rating.
 
 This process is subjective, expensive, and takes a long time. This is exactly the problem ContentGuard AI 2 solves.

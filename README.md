@@ -103,3 +103,14 @@ Film Studios: They get their rating faster and know exactly what to cut to lower
 Classification Boards: The AI does the "heavy lifting" of watching and logging, so human reviewers can focus only on the most difficult decisions.
 
 The Global Market: A single click shows how a movie will be rated in the US, India, UK, and Germany, making it easy to sell movies internationally.
+
+How I built it
+Platform: Google AI Studio (Gemini 1.5 Flash)
+
+My contribution: I designed and iteratively engineered the system prompts that instruct Gemini to perform multi-modal content analysis. This involved:
+
+  Defining the classification schema (Violence, Profanity, Sexual Content, etc.)
+  Prompting the model to analyze video frames, audio tone, and speech text simultaneously
+  Structuring the output to produce legally-styled certification reports with timestamps
+  Refining prompts through multiple iterations to improve consistency and reduce false positives
+  Calibrating threshold logic for different rating categories (PG, PG-13, R, NC-17)
